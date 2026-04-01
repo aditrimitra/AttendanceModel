@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="background-animation">
@@ -20,7 +21,7 @@
         <div class="glass-panel login-card">
             <div class="brand">
                 <span class="material-icons brand-icon">hub</span>
-                <h1>AttendEase</h1>
+                <h1 class="gradient-text">AttendEase</h1>
                 <p>Advanced Attendance Tracking</p>
             </div>
             
@@ -58,7 +59,7 @@
         <div class="glass-panel login-card">
             <div class="brand">
                 <span class="material-icons brand-icon">person_add</span>
-                <h2>Join AttendEase</h2>
+                <h2 class="gradient-text">Join AttendEase</h2>
                 <p>Create your account</p>
             </div>
             
@@ -132,7 +133,7 @@
 
             <div class="main-panel glass-card">
                 <div class="panel-header">
-                    <h3>My Attendance Records</h3>
+                    <h3 class="gradient-text">My Attendance Records</h3>
                     <select id="student-month-filter" class="glass-select">
                         <option value="1">January</option>
                         <option value="2">February</option>
@@ -184,7 +185,7 @@
         <main class="dashboard-content">
             <div class="main-panel glass-card glow-border">
                 <div class="panel-header">
-                    <h3>Take Attendance</h3>
+                    <h3 class="gradient-text">Take Attendance</h3>
                 </div>
                 
                 <div class="attendance-controls">
@@ -194,12 +195,14 @@
                     </div>
                     <div class="control-group">
                         <label>Subject</label>
-                        <select id="admin-subject" class="glass-select">
-                            <option value="Mathematics">Mathematics</option>
-                            <option value="Physics">Physics</option>
-                            <option value="Computer Science">Computer Science</option>
-                            <option value="English">English</option>
-                        </select>
+                        <div class="flex-row">
+                            <select id="admin-subject" class="glass-select" style="flex:1;">
+                                <option value="" disabled selected>Loading...</option>
+                            </select>
+                            <button id="btn-add-subject" class="btn secondary icon-btn" type="button" title="Add Subject">
+                                <span class="material-icons">add</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="control-group action-align">
                         <button id="btn-load-students" class="btn primary">
@@ -233,7 +236,7 @@
             
             <div class="main-panel glass-card mt-6">
                 <div class="panel-header">
-                    <h3>Student Queries View</h3>
+                    <h3 class="gradient-text">Student Queries View</h3>
                 </div>
                 <div class="custom-table-wrapper">
                     <table class="glass-table">
