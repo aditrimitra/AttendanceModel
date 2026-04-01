@@ -425,6 +425,14 @@ body {
     border-bottom: 1px solid var(--border);
 }
 
+.glass-table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.glass-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
 .glass-table th {
     font-weight: 600;
     color: var(--text-muted);
@@ -520,6 +528,20 @@ body {
 .hidden { display: none !important; }
 .mt-4 { margin-top: 1rem; }
 .mt-6 { margin-top: 2rem; }
+
+.flex-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+}
 
 /* Desktop overrides */
 @media (min-width: 768px) {

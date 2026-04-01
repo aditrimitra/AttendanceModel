@@ -184,6 +184,40 @@ function initAdminDashboard(user, userData) {
   // Set default date to today
   document.getElementById("admin-date").valueAsDate = new Date();
 
+  // Listen for subjects
+  const subjectsRef = ref(db, "subjects");
+  onValue(subjectsRef, (snap) => {
+    const sel = document.getElementById("admin-subject");
+    sel.innerHTML = "";
+    if (snap.exists()) {
+      const subjects = snap.val();
+      Object.keys(subjects).forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = opt.textContent = s;
+        sel.appendChild(opt);
+      });
+    } else {
+      const opt = document.createElement("option");
+      opt.value = ""; opt.textContent = "No subjects added";
+      sel.appendChild(opt);
+    }
+  });
+
+  // Add subject listener
+  const addSubjBtn = document.getElementById("btn-add-subject");
+  const newAddSubjBtn = addSubjBtn.cloneNode(true);
+  addSubjBtn.parentNode.replaceChild(newAddSubjBtn, addSubjBtn);
+  newAddSubjBtn.addEventListener("click", async () => {
+    const subjName = prompt("Enter new subject name:");
+    if (!subjName || subjName.trim() === "") return;
+    try {
+      await set(ref(db, `subjects/${subjName.trim()}`), { created: Date.now() });
+      showToast("Subject added successfully");
+    } catch (e) {
+      showToast("Error adding subject", "error");
+    }
+  });
+
   // Listen for queries
   const queriesRef = ref(db, "queries");
   onValue(queriesRef, (snapshot) => {
@@ -340,6 +374,60 @@ function initStudentDashboard(user, userData) {
 }
 
 let studentAttendanceUnsubscribe = null;
+let studentChartInstance = null;
+
+function updateStudentChart(stats) {
+  const ctx = document.getElementById("studentAttendanceChart");
+  if (!ctx) return;
+  
+  if (studentChartInstance) {
+    studentChartInstance.destroy();
+  }
+  
+  const labels = Object.keys(stats);
+  const data = labels.map((subj) => {
+    const s = stats[subj];
+    return s.held > 0 ? ((s.attended / s.held) * 100).toFixed(1) : 0;
+  });
+
+  studentChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Attendance %",
+          data: data,
+          backgroundColor: "rgba(139, 92, 246, 0.6)",
+          borderColor: "#8b5cf6",
+          borderWidth: 1,
+          borderRadius: 6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          grid: { color: "rgba(255, 255, 255, 0.05)" },
+          ticks: { color: "#cbd5e1" },
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: "#cbd5e1" },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+      },
+      animation: { duration: 1000, easing: "easeOutQuart" }
+    },
+  });
+}
+
 function loadStudentAttendance() {
   const selectedMonth = parseInt(
     document.getElementById("student-month-filter").value,
@@ -388,6 +476,7 @@ function loadStudentAttendance() {
       tbody.innerHTML =
         '<tr><td colspan="4" class="text-center text-muted">No attendance records for this month.</td></tr>';
       document.getElementById("student-month-percentage").textContent = "0%";
+      updateStudentChart({});
       return;
     }
 
@@ -421,5 +510,7 @@ function loadStudentAttendance() {
         : overall > 0
           ? "var(--danger)"
           : "var(--text)";
+          
+    updateStudentChart(subjectStats);
   });
 }
