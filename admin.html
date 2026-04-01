@@ -9,10 +9,26 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-    <div class="background-animation">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
+    <!-- Admin Navigation Overlay -->
+    <nav class="navbar">
+        <a href="#" class="brand-logo">
+            <span class="material-icons">admin_panel_settings</span> AttendEase
+        </a>
+        <div class="nav-links">
+            <span id="admin-name-display-desktop" style="font-weight:600; margin-right: 1rem;">HOD</span>
+            <button id="btn-logout-admin-desktop" class="btn secondary px-4 py-2" style="padding: 0.5rem 1rem;">Logout</button>
+        </div>
+        <button class="hamburger" id="hamburger-menu">
+            <span></span><span></span><span></span>
+        </button>
+    </nav>
+
+    <!-- Mobile Menu dropdown -->
+    <div class="mobile-menu" id="mobile-menu">
+        <div style="padding: 0 1.5rem 0.5rem; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9em;">
+            <span id="admin-name-display-mobile">HOD</span>
+        </div>
+        <a href="#" id="btn-logout-admin-mobile">Logout</a>
     </div>
 
     <!-- Admin Login View -->
@@ -48,23 +64,14 @@
     </div>
 
     <!-- Admin Dashboard -->
-    <div id="admin-view" class="view-container dashboard-layout">
-        <header class="glass-header">
-            <div class="brand-small">
-                <span class="material-icons">admin_panel_settings</span> <b>AttendEase</b> Admin
-            </div>
-            <div class="user-profile">
-                <span class="material-icons">shield</span>
-                <span id="admin-name-display">Administrator</span>
-                <button id="btn-logout-admin" class="btn icon-btn"><span class="material-icons">logout</span></button>
-            </div>
-        </header>
+    <div id="admin-view" class="view-container dashboard-layout" style="padding-top: 2rem;">
 
         <nav class="admin-nav glass-panel">
             <button class="nav-tab active" data-tab="attendance-view"><span class="material-icons">fact_check</span> Attendance</button>
             <button class="nav-tab" data-tab="leaderboard-view"><span class="material-icons">leaderboard</span> Leaderboard</button>
             <button class="nav-tab" data-tab="accounts-view" id="tab-accounts"><span class="material-icons">manage_accounts</span> Accounts</button>
             <button class="nav-tab" data-tab="queries-view"><span class="material-icons">forum</span> Queries</button>
+            <button class="nav-tab" data-tab="roles-view" id="tab-roles" style="display: none;"><span class="material-icons">admin_panel_settings</span> Manage Roles</button>
         </nav>
 
         <main class="dashboard-content">
@@ -75,7 +82,19 @@
                         <h3 class="gradient-text">Take Attendance</h3>
                     </div>
                     
-                    <div class="attendance-controls">
+                    <div class="attendance-controls" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                        <div class="control-group">
+                            <label>Branch</label>
+                            <select id="admin-branch" class="glass-select">
+                                <option value="" disabled selected>Select Branch</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Batch</label>
+                            <select id="admin-batch" class="glass-select">
+                                <option value="" disabled selected>Select Batch</option>
+                            </select>
+                        </div>
                         <div class="control-group">
                             <label>Date</label>
                             <input type="date" id="admin-date" class="glass-input">
@@ -84,16 +103,13 @@
                             <label>Subject</label>
                             <div class="flex-row">
                                 <select id="admin-subject" class="glass-select" style="flex:1;">
-                                    <option value="" disabled selected>Loading...</option>
+                                    <option value="" disabled selected>Select Date First</option>
                                 </select>
-                                <button id="btn-add-subject" class="btn secondary icon-btn" type="button" title="Add Subject">
-                                    <span class="material-icons">add</span>
-                                </button>
                             </div>
                         </div>
-                        <div class="control-group action-align">
-                            <button id="btn-load-students" class="btn primary">
-                                <span class="material-icons">people</span> Load Students
+                        <div class="control-group action-align" style="grid-column: 1 / -1; margin-top: 0.5rem;">
+                            <button id="btn-load-students" class="btn primary" style="width: 100%;">
+                                <span class="material-icons">people</span> Load Student Roster
                             </button>
                         </div>
                     </div>
@@ -152,7 +168,7 @@
             <div id="accounts-view" class="tab-panel">
                 <div class="main-panel glass-card mt-6">
                     <div class="panel-header">
-                        <h3 class="gradient-text">Create Account (Student/Admin)</h3>
+                        <h3 class="gradient-text">Create Account</h3>
                     </div>
                     <form id="admin-register-form" class="admin-form">
                         <div class="admin-form-row">
@@ -160,7 +176,7 @@
                                 <label>Account Role</label>
                                 <select id="admin-reg-role" class="glass-select">
                                     <option value="student" selected>Student</option>
-                                    <option value="admin" id="opt-reg-admin">Administrator</option>
+                                    <option value="admin" id="opt-reg-admin">Teacher / HOD</option>
                                 </select>
                             </div>
                             <div class="input-group">
@@ -175,20 +191,30 @@
                                 <label><span class="material-icons">email</span> Email Address</label>
                                 <input type="email" id="admin-reg-email" placeholder="Unique Email" required>
                             </div>
+                            <!-- Role Specific Fields -->
                             <div class="input-group" id="field-branch">
                                 <label><span class="material-icons">business</span> Branch</label>
-                                <input type="text" id="admin-reg-branch" placeholder="e.g., CSE">
+                                <select id="admin-reg-branch" class="glass-select">
+                                    <option value="" disabled selected>Select defined branch</option>
+                                </select>
                             </div>
                             <div class="input-group hidden" id="field-subjects">
-                                <label><span class="material-icons">book</span> Subjects (Comma separated)</label>
-                                <input type="text" id="admin-reg-subjects" placeholder="e.g., Math, Science">
+                                <label><span class="material-icons">book</span> Subjects (Teacher Only)</label>
+                                <input type="text" id="admin-reg-subjects" placeholder="Comma separated, e.g., Math, Science">
+                            </div>
+                            <div class="input-group" id="field-batch">
+                                <label><span class="material-icons">date_range</span> Batch (Year)</label>
+                                <select id="admin-reg-batch" class="glass-select">
+                                    <option value="" disabled selected>Select defined batch</option>
+                                </select>
                             </div>
                             <div class="input-group">
                                 <label><span class="material-icons">lock</span> Password</label>
                                 <input type="password" id="admin-reg-password" placeholder="Min 6 characters" required>
                             </div>
                         </div>
-                        <button type="submit" class="btn secondary" id="btn-admin-register">
+
+                        <button type="submit" class="btn secondary mt-6" id="btn-admin-register">
                             <span class="material-icons">person_add</span> Create Selected Account
                         </button>
                         <p id="admin-reg-error" class="error-msg"></p>
@@ -220,7 +246,80 @@
                     </div>
                 </div>
             </div>
+                <!-- Manage Subjects & Timetable Configuration (HOD Only) -->
+                <div class="grid-2 mt-6">
+                    <div class="main-panel glass-card">
+                        <div class="panel-header">
+                            <h3 class="gradient-text">Manage Global Subjects</h3>
+                        </div>
+                        <div class="flex-row" style="margin-bottom: 1rem;">
+                            <input type="text" id="roles-new-subject-input" class="glass-input" placeholder="e.g. Mathematics">
+                            <button id="btn-roles-add-subject" class="btn primary">Add</button>
+                        </div>
+                        <ul id="roles-subject-list" style="list-style:none; padding:0;">
+                             <!-- js populates -->
+                        </ul>
+                    </div>
+
+                    <div class="main-panel glass-card">
+                        <div class="panel-header">
+                            <h3 class="gradient-text">Configure Timetable</h3>
+                            <p class="text-muted" style="font-size: 0.8rem;">Link subjects to specific days</p>
+                        </div>
+                        <div class="admin-form-row" style="gap: 0.5rem; display: flex; flex-direction: column;">
+                            <div class="input-group">
+                                <label>Branch</label>
+                                <select id="tt-branch-select" class="glass-select"></select>
+                            </div>
+                            <div class="input-group">
+                                <label>Batch</label>
+                                <select id="tt-batch-select" class="glass-select"></select>
+                            </div>
+                            <div class="input-group">
+                                <label>Day</label>
+                                <select id="tt-day-select" class="glass-select">
+                                    <option value="Monday">Monday</option>
+                                    <option value="Tuesday">Tuesday</option>
+                                    <option value="Wednesday">Wednesday</option>
+                                    <option value="Thursday">Thursday</option>
+                                    <option value="Friday">Friday</option>
+                                    <option value="Saturday">Saturday</option>
+                                    <option value="Sunday">Sunday</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Subject</label>
+                                <div class="flex-row">
+                                    <input type="text" id="tt-subject-input" class="glass-input" placeholder="Enter Subject">
+                                    <button id="btn-add-tt-subject" class="btn primary" style="white-space: nowrap;">Add to Day</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timetable Preview (HOD Only) -->
+                <div class="main-panel glass-card mt-6">
+                    <div class="panel-header">
+                        <h3 class="gradient-text">Timetable Preview</h3>
+                    </div>
+                    <div id="tt-preview-container" class="custom-table-wrapper">
+                        <table class="glass-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 150px;">Day</th>
+                                    <th>Scheduled Subjects</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tt-preview-body">
+                                <tr><td colspan="2" class="text-center">Select Branch & Batch above</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div> <!-- END roles-view tab-panel -->
         </main>
+
     </div>
 
     <!-- Notification Toast -->

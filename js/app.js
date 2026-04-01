@@ -122,9 +122,18 @@ const handleLogout = async () => {
     showToast("Logout failed", "error");
   }
 };
-document
-  .getElementById("btn-logout-student")
-  .addEventListener("click", handleLogout);
+document.getElementById("btn-logout-student-desktop")?.addEventListener("click", handleLogout);
+document.getElementById("btn-logout-student-mobile")?.addEventListener("click", handleLogout);
+
+// Hamburger Menu Toggle
+const hamburger = document.getElementById("hamburger-menu-student");
+const mobileMenu = document.getElementById("mobile-menu-student");
+if (hamburger && mobileMenu) {
+    hamburger.addEventListener("click", () => {
+        hamburger.classList.toggle("open");
+        mobileMenu.classList.toggle("active");
+    });
+}
 
 // Modal Logic
 const queryModal = document.getElementById("query-modal");
@@ -137,16 +146,39 @@ document
 
 // --- STUDENT DASHBOARD ---
 let currentStudent = null;
+let currentSem = 1;
+
 function initStudentDashboard(user, userData) {
   currentStudent = { uid: user.uid, ...userData };
-  document.getElementById("student-name-display").textContent = userData.name;
+  
+  // Semester Calculation
+  const batchYear = userData.batch ? parseInt(userData.batch) : new Date().getFullYear();
+  const now = new Date();
+  const start = new Date(batchYear, 7, 1); // August 1st
+  let sem = 1;
+
+  if (now > start) {
+      const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+      sem = Math.floor(diffMonths / 6) + 1;
+  }
+  if (sem < 1) sem = 1;
+  currentSem = sem;
+
+  document.getElementById("student-name-display-desktop").textContent = userData.name;
+  document.getElementById("student-sem-display-desktop").textContent = `Sem ${sem}`;
+  document.getElementById("student-name-display-mobile").textContent = userData.name;
+  document.getElementById("student-sem-display-mobile").textContent = `Sem ${sem}`;
+  document.getElementById("leaderboard-batch-title").textContent = `${userData.branch || 'Unknown'} - Batch ${userData.batch || 'Unknown'}`;
 
   // Set filter to current month
   const currentMonth = new Date().getMonth() + 1; // 1-12
   document.getElementById("student-month-filter").value = currentMonth;
 
-  // Load attendance automatically based on filter
+  // Load Dashboards
   loadStudentAttendance();
+  loadStudentLeaderboard();
+  loadTodaySchedule();
+
   document
     .getElementById("student-month-filter")
     .addEventListener("change", loadStudentAttendance);
@@ -320,3 +352,121 @@ function loadStudentAttendance() {
     updateStudentChart(subjectStats);
   });
 }
+
+// Leaderboard Logic
+async function loadStudentLeaderboard() {
+    const tbody = document.getElementById("student-leaderboard-body");
+    try {
+        const usersSnap = await get(ref(db, "users"));
+        const attSnap = await get(ref(db, "attendance"));
+        
+        if (!usersSnap.exists()) return;
+        const users = usersSnap.val();
+        const attendance = attSnap.exists() ? attSnap.val() : {};
+
+        // Filter for Same Branch AND Same Batch
+        const students = Object.keys(users)
+            .filter(uid => 
+                users[uid].role === "student" && 
+                users[uid].branch === currentStudent.branch && 
+                users[uid].batch === currentStudent.batch
+            )
+            .map(uid => ({
+                uid,
+                name: users[uid].name
+            }));
+
+        const leaderboardData = students.map(student => {
+            let totalHeld = 0;
+            let totalAttended = 0;
+
+            Object.values(attendance).forEach(subjDates => {
+                Object.values(subjDates).forEach(records => {
+                    totalHeld++;
+                    if (records[student.uid] === "present") {
+                        totalAttended++;
+                    }
+                });
+            });
+
+            const percentage = totalHeld > 0 ? ((totalAttended / totalHeld) * 100) : 0;
+            return { ...student, percentage };
+        });
+
+        leaderboardData.sort((a, b) => b.percentage - a.percentage);
+
+        tbody.innerHTML = "";
+        leaderboardData.forEach((student, index) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><b>#${index + 1}</b></td>
+                <td>${student.uid === currentStudent.uid ? `<span style="color:var(--primary); font-weight:700;">${student.name} (You)</span>` : student.name}</td>
+                <td><span class="stat-value" style="font-size: 1.1rem; color: ${student.percentage >= 75 ? "var(--success)" : "var(--danger)"}">${student.percentage.toFixed(1)}%</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Leaderboard error</td></tr>';
+    }
+}
+
+// Today Schedule Logic
+async function loadTodaySchedule() {
+    const tbody = document.getElementById("student-today-body");
+    const dateDisplay = document.getElementById("today-date-display");
+    
+    const today = new Date();
+    const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
+    const dateString = today.toISOString().split('T')[0];
+    dateDisplay.textContent = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    try {
+        // 1. Fetch Timetable for this student's Branch/Batch/Day
+        const branch = currentStudent.branch;
+        const batch = currentStudent.batch;
+        
+        if(!branch || !batch) {
+            tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">Branch/Batch info missing.</td></tr>';
+            return;
+        }
+
+        const ttSnap = await get(ref(db, `timetable/${branch}/${batch}/${dayName}`));
+        const ttSubjects = ttSnap.exists() ? Object.keys(ttSnap.val()) : [];
+
+        // 2. Fetch existing attendance for today
+        const attSnap = await get(ref(db, `attendance/${dateString}`));
+        const attendanceToday = attSnap.exists() ? attSnap.val() : {};
+        
+        tbody.innerHTML = "";
+        
+        if (ttSubjects.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">No classes scheduled for today.</td></tr>';
+            return;
+        }
+
+        ttSubjects.forEach(subj => {
+            const tr = document.createElement("tr");
+            let statusBadge = '<span class="text-muted">Not Measured</span>';
+            
+            if (attendanceToday[subj] && attendanceToday[subj][currentStudent.uid]) {
+                const status = attendanceToday[subj][currentStudent.uid];
+                if (status === 'present') {
+                    statusBadge = '<span style="color:var(--success); font-weight:600;">Present <span class="material-icons" style="font-size:1rem; vertical-align:middle;">check_circle</span></span>';
+                } else {
+                    statusBadge = '<span style="color:var(--danger); font-weight:600;">Absent <span class="material-icons" style="font-size:1rem; vertical-align:middle;">cancel</span></span>';
+                }
+            }
+
+            tr.innerHTML = `
+                <td><b>${subj}</b></td>
+                <td>${statusBadge}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (e) {
+        console.error(e);
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">Failed to load schedule.</td></tr>';
+    }
+}
+
