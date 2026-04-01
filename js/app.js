@@ -1,5 +1,6 @@
 import {
   auth,
+  secondaryAuth,
   db,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -11,14 +12,13 @@ import {
   child,
   onValue,
   push,
+  sendPasswordResetEmail
 } from "./firebase-init.js";
 
 // DOM Elements
 const views = {
   login: document.getElementById("login-view"),
-  register: document.getElementById("register-view"),
   student: document.getElementById("student-view"),
-  admin: document.getElementById("admin-view"),
 };
 
 // Switch view logic
@@ -44,14 +44,7 @@ function showToast(message, type = "success") {
 }
 
 // Initial Routing
-document.getElementById("btn-show-register").addEventListener("click", (e) => {
-  e.preventDefault();
-  switchView("register");
-});
-document.getElementById("btn-show-login").addEventListener("click", (e) => {
-  e.preventDefault();
-  switchView("login");
-});
+// Removed public registration navigation
 
 // Role Tab Toggling (Visual)
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -71,8 +64,8 @@ onAuthStateChanged(auth, async (user) => {
       if (snapshot.exists()) {
         const userData = snapshot.val();
         if (userData.role === "admin") {
-          initAdminDashboard(user, userData);
-          switchView("admin");
+          // If admin somehow logs in here (shouldn't happen with RegdNo), redirect
+          window.location.href = "admin.html";
         } else {
           initStudentDashboard(user, userData);
           switchView("student");
@@ -97,12 +90,20 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
     'Signing in... <span class="material-icons">hourglass_empty</span>';
   btn.disabled = true;
 
-  const email = document.getElementById("login-email").value;
+  const regdNo = document.getElementById("login-regd").value.trim();
   const password = document.getElementById("login-password").value;
   const errorEl = document.getElementById("login-error");
   errorEl.textContent = "";
 
   try {
+    // 1. Lookup email by Registration Number
+    const mappingSnap = await get(ref(db, `regd_to_email/${regdNo}`));
+    if (!mappingSnap.exists()) {
+      throw new Error("Invalid Registration Number");
+    }
+    const email = mappingSnap.val();
+
+    // 2. Sign in with the retrieved email
     await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
     errorEl.textContent = error.message;
@@ -111,45 +112,6 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
     btn.disabled = false;
   }
 });
-
-// Register Logic
-document
-  .getElementById("register-form")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById("btn-register-submit");
-    btn.innerHTML = "Creating...";
-    btn.disabled = true;
-
-    const name = document.getElementById("reg-name").value;
-    const email = document.getElementById("reg-email").value;
-    const password = document.getElementById("reg-password").value;
-    const role = document.querySelector('input[name="reg-role"]:checked').value;
-    const errorEl = document.getElementById("register-error");
-    errorEl.textContent = "";
-
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
-      const user = userCredential.user;
-
-      // Save additional user info in DB
-      await set(ref(db, "users/" + user.uid), {
-        name: name,
-        email: email,
-        role: role,
-      });
-      showToast("Account created successfully!");
-    } catch (error) {
-      errorEl.textContent = error.message;
-    } finally {
-      btn.innerHTML = "Create Account";
-      btn.disabled = false;
-    }
-  });
 
 // Logout
 const handleLogout = async () => {
@@ -163,9 +125,6 @@ const handleLogout = async () => {
 document
   .getElementById("btn-logout-student")
   .addEventListener("click", handleLogout);
-document
-  .getElementById("btn-logout-admin")
-  .addEventListener("click", handleLogout);
 
 // Modal Logic
 const queryModal = document.getElementById("query-modal");
@@ -175,159 +134,6 @@ document
 document
   .getElementById("btn-close-modal")
   .addEventListener("click", () => queryModal.classList.add("hidden"));
-
-// --- ADMIN DASHBOARD ---
-let currentAdminStudents = [];
-function initAdminDashboard(user, userData) {
-  document.getElementById("admin-name-display").textContent = userData.name;
-
-  // Set default date to today
-  document.getElementById("admin-date").valueAsDate = new Date();
-
-  // Listen for subjects
-  const subjectsRef = ref(db, "subjects");
-  onValue(subjectsRef, (snap) => {
-    const sel = document.getElementById("admin-subject");
-    sel.innerHTML = "";
-    if (snap.exists()) {
-      const subjects = snap.val();
-      Object.keys(subjects).forEach(s => {
-        const opt = document.createElement("option");
-        opt.value = opt.textContent = s;
-        sel.appendChild(opt);
-      });
-    } else {
-      const opt = document.createElement("option");
-      opt.value = ""; opt.textContent = "No subjects added";
-      sel.appendChild(opt);
-    }
-  });
-
-  // Add subject listener
-  const addSubjBtn = document.getElementById("btn-add-subject");
-  const newAddSubjBtn = addSubjBtn.cloneNode(true);
-  addSubjBtn.parentNode.replaceChild(newAddSubjBtn, addSubjBtn);
-  newAddSubjBtn.addEventListener("click", async () => {
-    const subjName = prompt("Enter new subject name:");
-    if (!subjName || subjName.trim() === "") return;
-    try {
-      await set(ref(db, `subjects/${subjName.trim()}`), { created: Date.now() });
-      showToast("Subject added successfully");
-    } catch (e) {
-      showToast("Error adding subject", "error");
-    }
-  });
-
-  // Listen for queries
-  const queriesRef = ref(db, "queries");
-  onValue(queriesRef, (snapshot) => {
-    const tbody = document.getElementById("admin-queries-body");
-    tbody.innerHTML = "";
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      Object.values(data).forEach((q) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-                    <td>${q.studentName || "Unknown"}</td>
-                    <td><b>${q.subject}</b></td>
-                    <td>${q.message}</td>
-                    <td>${new Date(q.timestamp).toLocaleString()}</td>
-                `;
-        tbody.appendChild(tr);
-      });
-    } else {
-      tbody.innerHTML =
-        '<tr><td colspan="4" class="text-center">No queries found.</td></tr>';
-    }
-  });
-
-  document
-    .getElementById("btn-load-students")
-    .addEventListener("click", loadRoster);
-  document
-    .getElementById("btn-save-attendance")
-    .addEventListener("click", saveAttendance);
-}
-
-async function loadRoster() {
-  const date = document.getElementById("admin-date").value;
-  const subject = document.getElementById("admin-subject").value;
-  if (!date) return showToast("Please select a date", "error");
-
-  const btn = document.getElementById("btn-load-students");
-  btn.innerHTML = "Loading...";
-
-  try {
-    // Fetch students
-    const snapshot = await get(ref(db, "users"));
-    if (!snapshot.exists()) {
-      showToast("No students found.", "error");
-      return;
-    }
-
-    const users = snapshot.val();
-    currentAdminStudents = Object.keys(users)
-      .filter((uid) => users[uid].role === "student")
-      .map((uid) => ({ uid, ...users[uid] }));
-
-    // Fetch existing attendance for this date -> subject
-    const attendanceSnap = await get(ref(db, `attendance/${date}/${subject}`));
-    const existingAtt = attendanceSnap.exists() ? attendanceSnap.val() : {};
-
-    const tbody = document.getElementById("admin-roster-body");
-    tbody.innerHTML = "";
-
-    currentAdminStudents.forEach((student) => {
-      const status = existingAtt[student.uid] || "absent"; // default absent
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-                <td><b>${student.name}</b></td>
-                <td>${student.email}</td>
-                <td class="text-center">
-                    <div class="switch-wrapper">
-                        <input type="radio" name="att-${student.uid}" id="pres-${student.uid}" value="present" class="status-radio present" ${status === "present" ? "checked" : ""}>
-                        <label for="pres-${student.uid}" class="status-label">Present</label>
-                        
-                        <input type="radio" name="att-${student.uid}" id="abs-${student.uid}" value="absent" class="status-radio absent" ${status === "absent" ? "checked" : ""}>
-                        <label for="abs-${student.uid}" class="status-label">Absent</label>
-                    </div>
-                </td>
-            `;
-      tbody.appendChild(tr);
-    });
-
-    document
-      .getElementById("admin-roster-container")
-      .classList.remove("hidden");
-  } catch (e) {
-    showToast(e.message, "error");
-  } finally {
-    btn.innerHTML = '<span class="material-icons">people</span> Load Roster';
-  }
-}
-
-async function saveAttendance() {
-  const date = document.getElementById("admin-date").value;
-  const subject = document.getElementById("admin-subject").value;
-  const attendanceData = {};
-
-  currentAdminStudents.forEach((student) => {
-    const selected = document.querySelector(
-      `input[name="att-${student.uid}"]:checked`,
-    );
-    if (selected) {
-      attendanceData[student.uid] = selected.value;
-    }
-  });
-
-  try {
-    await set(ref(db, `attendance/${date}/${subject}`), attendanceData);
-    showToast("Attendance saved successfully!");
-  } catch (error) {
-    showToast("Failed to save: " + error.message, "error");
-  }
-}
 
 // --- STUDENT DASHBOARD ---
 let currentStudent = null;

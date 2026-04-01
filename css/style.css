@@ -175,6 +175,67 @@ body {
     color: white;
 }
 
+/* Admin Tabs Navigation */
+.admin-nav {
+    display: flex;
+    gap: 1rem;
+    padding: 0.75rem 2rem;
+    margin: 1rem auto;
+    max-width: 1200px;
+    width: calc(100% - 4rem);
+    border-radius: 12px;
+}
+
+.nav-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.nav-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+}
+
+.nav-tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+.tab-panel {
+    display: none;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+    .admin-nav {
+        flex-wrap: wrap;
+        width: calc(100% - 2rem);
+        padding: 0.5rem 1rem;
+    }
+}
+
 /* Form Elements */
 .input-group {
     margin-bottom: 1.25rem;

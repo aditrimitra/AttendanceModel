@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AttendEase | Admin Portal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div class="background-animation">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Admin Login View -->
+    <div id="login-view" class="view-container active-view">
+        <div class="glass-panel login-card">
+            <div class="brand">
+                <span class="material-icons brand-icon">admin_panel_settings</span>
+                <h1 class="gradient-text">AttendEase</h1>
+                <p>Admin Portal | Secure Login</p>
+            </div>
+            
+            <form id="admin-login-form">
+                <div class="input-group">
+                    <span class="material-icons input-icon">email</span>
+                    <input type="email" id="login-email" placeholder="Admin Email" required>
+                </div>
+                
+                <div class="input-group">
+                    <span class="material-icons input-icon">lock</span>
+                    <input type="password" id="login-password" placeholder="Password" required>
+                </div>
+                
+                <button type="submit" class="btn primary full-width" id="btn-login-submit">
+                    Sign In <span class="material-icons">east</span>
+                </button>
+                
+                <p id="login-error" class="error-msg"></p>
+            </form>
+            <div class="mt-4 text-center">
+                <a href="index.html" class="text-sm text-muted" style="text-decoration: none;">&larr; Back to Student Portal</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="admin-view" class="view-container dashboard-layout">
+        <header class="glass-header">
+            <div class="brand-small">
+                <span class="material-icons">admin_panel_settings</span> <b>AttendEase</b> Admin
+            </div>
+            <div class="user-profile">
+                <span class="material-icons">shield</span>
+                <span id="admin-name-display">Administrator</span>
+                <button id="btn-logout-admin" class="btn icon-btn"><span class="material-icons">logout</span></button>
+            </div>
+        </header>
+
+        <nav class="admin-nav glass-panel">
+            <button class="nav-tab active" data-tab="attendance-view"><span class="material-icons">fact_check</span> Attendance</button>
+            <button class="nav-tab" data-tab="leaderboard-view"><span class="material-icons">leaderboard</span> Leaderboard</button>
+            <button class="nav-tab" data-tab="accounts-view" id="tab-accounts"><span class="material-icons">manage_accounts</span> Accounts</button>
+            <button class="nav-tab" data-tab="queries-view"><span class="material-icons">forum</span> Queries</button>
+        </nav>
+
+        <main class="dashboard-content">
+            <!-- TAB: Attendance -->
+            <div id="attendance-view" class="tab-panel active">
+                <div class="main-panel glass-card glow-border">
+                    <div class="panel-header">
+                        <h3 class="gradient-text">Take Attendance</h3>
+                    </div>
+                    
+                    <div class="attendance-controls">
+                        <div class="control-group">
+                            <label>Date</label>
+                            <input type="date" id="admin-date" class="glass-input">
+                        </div>
+                        <div class="control-group">
+                            <label>Subject</label>
+                            <div class="flex-row">
+                                <select id="admin-subject" class="glass-select" style="flex:1;">
+                                    <option value="" disabled selected>Loading...</option>
+                                </select>
+                                <button id="btn-add-subject" class="btn secondary icon-btn" type="button" title="Add Subject">
+                                    <span class="material-icons">add</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="control-group action-align">
+                            <button id="btn-load-students" class="btn primary">
+                                <span class="material-icons">people</span> Load Students
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="admin-roster-container" class="roster-container hidden">
+                        <div class="custom-table-wrapper">
+                            <table class="glass-table attendance-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <th>Registration No.</th>
+                                        <th class="text-center">Status</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-roster-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="roster-footer">
+                            <button id="btn-save-attendance" class="btn success full-width">
+                                <span class="material-icons">check_circle</span> Save Attendance Record
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Leaderboard -->
+            <div id="leaderboard-view" class="tab-panel">
+                <div class="main-panel glass-card">
+                    <div class="panel-header">
+                        <h3 class="gradient-text">Student Leaderboard</h3>
+                    </div>
+                    <div class="custom-table-wrapper">
+                        <table class="glass-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Student</th>
+                                    <th>Reg. No</th>
+                                    <th>Branch</th>
+                                    <th>Attendance %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Accounts -->
+            <div id="accounts-view" class="tab-panel">
+                <div class="main-panel glass-card mt-6">
+                    <div class="panel-header">
+                        <h3 class="gradient-text">Create Account (Student/Admin)</h3>
+                    </div>
+                    <form id="admin-register-form" class="admin-form">
+                        <div class="admin-form-row">
+                            <div class="input-group">
+                                <label>Account Role</label>
+                                <select id="admin-reg-role" class="glass-select">
+                                    <option value="student" selected>Student</option>
+                                    <option value="admin" id="opt-reg-admin">Administrator</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label><span class="material-icons">badge</span> ID / Registration No.</label>
+                                <input type="text" id="admin-reg-regd" placeholder="Must be unique" required>
+                            </div>
+                            <div class="input-group">
+                                <label><span class="material-icons">person</span> Full Name</label>
+                                <input type="text" id="admin-reg-name" placeholder="Enter Full Name" required>
+                            </div>
+                            <div class="input-group">
+                                <label><span class="material-icons">email</span> Email Address</label>
+                                <input type="email" id="admin-reg-email" placeholder="Unique Email" required>
+                            </div>
+                            <div class="input-group" id="field-branch">
+                                <label><span class="material-icons">business</span> Branch</label>
+                                <input type="text" id="admin-reg-branch" placeholder="e.g., CSE">
+                            </div>
+                            <div class="input-group hidden" id="field-subjects">
+                                <label><span class="material-icons">book</span> Subjects (Comma separated)</label>
+                                <input type="text" id="admin-reg-subjects" placeholder="e.g., Math, Science">
+                            </div>
+                            <div class="input-group">
+                                <label><span class="material-icons">lock</span> Password</label>
+                                <input type="password" id="admin-reg-password" placeholder="Min 6 characters" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn secondary" id="btn-admin-register">
+                            <span class="material-icons">person_add</span> Create Selected Account
+                        </button>
+                        <p id="admin-reg-error" class="error-msg"></p>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- TAB: Queries -->
+            <div id="queries-view" class="tab-panel">
+                <div class="main-panel glass-card mt-6">
+                    <div class="panel-header">
+                        <h3 class="gradient-text">Student Queries View</h3>
+                    </div>
+                    <div class="custom-table-wrapper">
+                        <table class="glass-table">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Registration No.</th>
+                                    <th>Subject/Title</th>
+                                    <th>Message</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-queries-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="js/firebase-init.js"></script>
+    <script type="module" src="js/admin-app.js"></script>
+</body>
+</html>

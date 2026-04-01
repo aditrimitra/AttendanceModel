@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { getDatabase, ref, set, get, child, onValue, push, update } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -14,11 +14,14 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const secondaryApp = initializeApp(firebaseConfig, "secondary");
 const auth = getAuth(app);
+const secondaryAuth = getAuth(secondaryApp);
 const db = getDatabase(app);
 
 export { 
     auth, 
+    secondaryAuth,
     db, 
     signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, 
@@ -30,5 +33,6 @@ export {
     child, 
     onValue, 
     push, 
-    update 
+    update,
+    sendPasswordResetEmail
 };
