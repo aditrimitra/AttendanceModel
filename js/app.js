@@ -432,7 +432,7 @@ async function loadTodaySchedule() {
         }
 
         const ttSnap = await get(ref(db, `timetable/${branch}/${batch}/${dayName}`));
-        const ttSubjects = ttSnap.exists() ? Object.keys(ttSnap.val()) : [];
+        const ttEntries = ttSnap.exists() ? Object.values(ttSnap.val()) : [];
 
         // 2. Fetch existing attendance for today
         const attSnap = await get(ref(db, `attendance/${dateString}`));
@@ -440,12 +440,14 @@ async function loadTodaySchedule() {
         
         tbody.innerHTML = "";
         
-        if (ttSubjects.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">No classes scheduled for today.</td></tr>';
+        if (ttEntries.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No classes scheduled for today.</td></tr>';
             return;
         }
 
-        ttSubjects.forEach(subj => {
+        ttEntries.forEach(entry => {
+            const subj = entry.subject;
+            const time = entry.timeSlot || "N/A";
             const tr = document.createElement("tr");
             let statusBadge = '<span class="text-muted">Not Measured</span>';
             
@@ -459,6 +461,7 @@ async function loadTodaySchedule() {
             }
 
             tr.innerHTML = `
+                <td>${time}</td>
                 <td><b>${subj}</b></td>
                 <td>${statusBadge}</td>
             `;
@@ -467,7 +470,7 @@ async function loadTodaySchedule() {
 
     } catch (e) {
         console.error(e);
-        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">Failed to load schedule.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Failed to load schedule.</td></tr>';
     }
 }
 

@@ -202,27 +202,34 @@ function initAdminDashboard(user, userData) {
       const dateObj = new Date(date);
       const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
       const ttSnap = await get(ref(db, `timetable/${branch}/${batch}/${dayName}`));
-      const ttSubjects = ttSnap.exists() ? Object.keys(ttSnap.val()) : [];
+      
+      const ttEntries = ttSnap.exists() ? Object.values(ttSnap.val()) : [];
+      const ttSubjectNames = ttEntries.map(e => e.subject);
 
       const currentVal = sel.value;
       sel.innerHTML = '<option value="" disabled selected>Select Subject</option>';
 
-      let allowed = [];
+      let allowedEntries = [];
       if (isAdminMaster) {
-          // HOD gets timetable or fallback
-          allowed = ttSubjects.length > 0 ? ttSubjects : ["Generic Class"];
+          // HOD gets all timetable entries or fallback
+          allowedEntries = ttEntries.length > 0 ? ttEntries : [{ subject: "Generic Class", timeSlot: "Anytime" }];
       } else {
           // Teacher gets intersection of their subjects and timetable
           const teacherSubjects = userData.subjects || [];
-          allowed = ttSubjects.length > 0 ? teacherSubjects.filter(s => ttSubjects.includes(s)) : teacherSubjects;
+          allowedEntries = ttEntries.filter(e => teacherSubjects.includes(e.subject));
+          // If no specific timetable, just show teacher's subjects
+          if (ttEntries.length === 0) {
+              allowedEntries = teacherSubjects.map(s => ({ subject: s, timeSlot: "No Slot Set" }));
+          }
       }
 
-      allowed.forEach(s => {
+      allowedEntries.forEach(e => {
           const opt = document.createElement("option");
-          opt.value = opt.textContent = s;
+          opt.value = e.subject;
+          opt.textContent = `${e.subject} (${e.timeSlot})`;
           sel.appendChild(opt);
       });
-      if (allowed.includes(currentVal)) sel.value = currentVal;
+      if (ttSubjectNames.includes(currentVal)) sel.value = currentVal;
   };
 
   ["admin-branch", "admin-batch", "admin-date"].forEach(id => {
@@ -518,7 +525,7 @@ function initTimetableManagement() {
         const branch = branchSel.value;
         const batch = batchSel.value;
         if(!branch || !batch) {
-            previewBody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">Select Branch & Batch to view preview</td></tr>';
+            previewBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Select Branch & Batch to view preview</td></tr>';
             return;
         }
 
@@ -527,38 +534,87 @@ function initTimetableManagement() {
         
         previewBody.innerHTML = "";
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        
+        const data = snap.exists() ? snap.val() : {};
+
         days.forEach(day => {
-            const tr = document.createElement("tr");
-            const subjects = (snap.exists() && snap.val()[day]) ? Object.keys(snap.val()[day]).join(", ") : '<span class="text-muted">No classes</span>';
-            tr.innerHTML = `<td style="font-weight:600; color:var(--primary);">${day}</td><td>${subjects}</td>`;
-            previewBody.appendChild(tr);
+            const dayEntries = data[day] || {};
+            const entryIds = Object.keys(dayEntries);
+
+            if (entryIds.length === 0) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td style="font-weight:600; color:var(--primary);">${day}</td><td colspan="3" class="text-muted">No classes</td>`;
+                previewBody.appendChild(tr);
+            } else {
+                entryIds.forEach((id, idx) => {
+                    const entry = dayEntries[id];
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        ${idx === 0 ? `<td rowspan="${entryIds.length}" style="font-weight:600; color:var(--primary);">${day}</td>` : ""}
+                        <td>${entry.timeSlot || "N/A"}</td>
+                        <td><b>${entry.subject}</b></td>
+                        <td class="text-center">
+                            <button class="btn icon-btn btn-delete-tt" data-path="timetable/${branch}/${batch}/${day}/${id}">
+                                <span class="material-icons" style="color:var(--danger); font-size:1.2rem;">delete</span>
+                            </button>
+                        </td>
+                    `;
+                    previewBody.appendChild(tr);
+                });
+            }
         });
     };
 
     branchSel.addEventListener("change", refreshPreview);
     batchSel.addEventListener("change", refreshPreview);
 
+    // Event Delegation for Deletion
+    previewBody.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".btn-delete-tt");
+        if (btn) {
+            const path = btn.dataset.path;
+            if (confirm("Delete this timetable slot?")) {
+                try {
+                    await set(ref(db, path), null); // Delete
+                    showToast("Slot deleted");
+                    refreshPreview();
+                } catch (err) {
+                    showToast("Failed to delete", "error");
+                }
+            }
+        }
+    });
+
     document.getElementById("btn-add-tt-subject")?.addEventListener("click", async () => {
         const branch = branchSel.value;
         const batch = batchSel.value;
         const day = document.getElementById("tt-day-select").value;
         const subject = document.getElementById("tt-subject-input").value.trim();
+        const timeSlot = document.getElementById("tt-time-input").value.trim();
 
-        if(!branch || !batch || !subject) {
-            showToast("Select Branch/Batch and enter Subject", "error");
+        if(!branch || !batch || !subject || !timeSlot) {
+            showToast("Enter Subject and Time Slot", "error");
             return;
         }
 
-        // Add to Timetable
-        await set(ref(db, `timetable/${branch}/${batch}/${day}/${subject}`), true);
-        
-        // Ensure it exists in global subjects too so teachers can mark it
-        await set(ref(db, `subjects/${subject}`), { created: Date.now() });
+        try {
+            // Add unique entry
+            const newTtRef = push(ref(db, `timetable/${branch}/${batch}/${day}`));
+            await set(newTtRef, { 
+                subject, 
+                timeSlot,
+                createdAt: Date.now()
+            });
+            
+            // Ensure subject exists globally
+            await set(ref(db, `subjects/${subject}`), { created: Date.now() });
 
-        document.getElementById("tt-subject-input").value = "";
-        showToast(`Linked ${subject} to ${day}`);
-        refreshPreview();
+            document.getElementById("tt-subject-input").value = "";
+            document.getElementById("tt-time-input").value = "";
+            showToast(`Linked ${subject} to ${day}`);
+            refreshPreview();
+        } catch (err) {
+            showToast("Failed to add: " + err.message, "error");
+        }
     });
 }
 
