@@ -69,11 +69,19 @@
 
     <!-- Mobile Menu dropdown -->
     <div class="mobile-menu" id="mobile-menu-student">
-        <div style="padding: 0 1.5rem 0.5rem; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9em;">
-            <span id="student-name-display-mobile">Student</span> <br>
-            <span id="student-sem-display-mobile" style="color: var(--primary); font-weight:600;">Sem 1</span>
+        <div class="mobile-menu-header">
+            <div>
+                <span id="student-name-display-mobile" style="font-weight: 500;">Student</span> <br>
+                <span id="student-sem-display-mobile" style="color: var(--primary); font-weight:600; font-size: 0.9em;">Sem 1</span>
+            </div>
+            <span class="material-icons" id="close-menu-student" style="cursor:pointer;">close</span>
         </div>
-        <a href="#" id="btn-logout-student-mobile">Logout</a>
+        <div class="mobile-nav-links">
+            <hr style="border:0; border-top: 1px solid rgba(255,255,255,0.1); margin: 1rem 0;">
+            <button id="btn-logout-student-mobile" class="mobile-nav-tab logout-btn">
+                <span class="material-icons">logout</span> Logout
+            </button>
+        </div>
     </div>
 
     <!-- Student Dashboard -->

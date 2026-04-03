@@ -168,11 +168,20 @@ document.getElementById("btn-logout-student-mobile")?.addEventListener("click", 
 // Hamburger Menu Toggle
 const hamburger = document.getElementById("hamburger-menu-student");
 const mobileMenu = document.getElementById("mobile-menu-student");
+const closeMenuStudent = document.getElementById("close-menu-student");
+
 if (hamburger && mobileMenu) {
     hamburger.addEventListener("click", () => {
         hamburger.classList.toggle("open");
         mobileMenu.classList.toggle("active");
     });
+    
+    if (closeMenuStudent) {
+        closeMenuStudent.addEventListener("click", () => {
+            hamburger.classList.remove("open");
+            mobileMenu.classList.remove("active");
+        });
+    }
 }
 
 // Modal Logic
