@@ -92,7 +92,7 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 700;
     text-decoration: none;
     color: var(--text);
@@ -100,7 +100,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .brand-logo .material-icons {
     color: var(--primary);
-    font-size: 2rem;
+    font-size: 1.6rem;
 }
 
 /* Desktop Navigation */
@@ -443,7 +443,49 @@ h1, h2, h3, h4, h5, h6 {
         grid-template-columns: 1fr;
     }
     .admin-nav {
-        display: none !important; /* Hide redundant tabs on mobile, use sidebar instead */
+        display: none !important;
+    }
+    .dashboard-content {
+        padding: 0.75rem !important;
+    }
+    .navbar {
+        padding: 0.8rem 1rem;
+    }
+    .main-panel {
+        padding: 1.25rem 1rem !important;
+    }
+
+    /* Hide elements not needed on mobile */
+    .hide-mobile {
+        display: none !important;
+    }
+
+    /* Compact table headers on mobile */
+    .glass-table thead th {
+        font-size: 0.75rem !important;
+        padding: 0.6rem 0.5rem !important;
+        letter-spacing: 0.03em;
+    }
+
+    .glass-table tbody td {
+        padding: 0.6rem 0.5rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* Table Responsive Roster Stacking — Name on top, RegNo below */
+    #admin-roster-body td:nth-child(1) {
+        display: block !important;
+        padding-bottom: 0 !important;
+        border-bottom: none !important;
+        font-size: 0.95rem !important;
+        font-weight: 600;
+    }
+    #admin-roster-body td:nth-child(2) {
+        display: block !important;
+        padding-top: 0.15rem !important;
+        padding-bottom: 0.5rem !important;
+        font-size: 0.8rem !important;
+        color: var(--text-muted) !important;
     }
 }
 
@@ -469,7 +511,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 .input-group input, .glass-input, .glass-select, textarea {
     width: 100%;
-    padding: 0.8rem 1rem 0.8rem 3rem; /* padding for icon */
+    padding: 0.8rem 1.5rem 0.8rem 3rem; /* padding icon and arrow */
     background: #0f0f0f;
     border: 1px solid #1f1f1f;
     border-radius: 8px;
