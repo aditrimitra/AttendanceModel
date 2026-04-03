@@ -236,10 +236,11 @@ function updateStudentChart(stats) {
         {
           label: "Attendance %",
           data: data,
-          backgroundColor: "rgba(139, 92, 246, 0.6)",
-          borderColor: "#8b5cf6",
-          borderWidth: 1,
-          borderRadius: 6,
+          backgroundColor: "rgba(147, 51, 234, 0.4)",
+          borderColor: "#9333ea",
+          borderWidth: 2,
+          borderRadius: 8,
+          hoverBackgroundColor: "#9333ea",
         },
       ],
     },
@@ -247,22 +248,22 @@ function updateStudentChart(stats) {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: "#94a3b8", font: { family: "'Outfit', sans-serif" } }
+        },
         y: {
           beginAtZero: true,
           max: 100,
           grid: { color: "rgba(255, 255, 255, 0.05)" },
-          ticks: { color: "#cbd5e1" },
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: "#cbd5e1" },
-        },
+          ticks: { color: "#94a3b8", font: { family: "'Outfit', sans-serif" } }
+        }
       },
       plugins: {
-        legend: { display: false },
+        legend: { display: false }
       },
-      animation: { duration: 1000, easing: "easeOutQuart" }
-    },
+      animation: { duration: 1500, easing: "easeOutQuart" }
+    }
   });
 }
 
