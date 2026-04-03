@@ -288,10 +288,11 @@
                                 </select>
                             </div>
                             <div class="input-group">
-                                <label>Subject</label>
-                                <div class="flex-row">
-                                    <input type="text" id="tt-subject-input" class="glass-input" placeholder="Enter Subject">
-                                    <button id="btn-add-tt-subject" class="btn primary" style="white-space: nowrap;">Add to Day</button>
+                                <label>Subject & Time Slot</label>
+                                <div class="flex-row" style="gap: 0.5rem; flex-wrap: wrap;">
+                                    <input type="text" id="tt-subject-input" class="glass-input" placeholder="e.g. IWT" style="flex: 2; min-width: 150px;">
+                                    <input type="text" id="tt-time-input" class="glass-input" placeholder="e.g. 10am - 12pm" style="flex: 1; min-width: 120px;">
+                                    <button id="btn-add-tt-subject" class="btn primary" style="white-space: nowrap;">Add Slot</button>
                                 </div>
                             </div>
                         </div>
@@ -307,12 +308,14 @@
                         <table class="glass-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 150px;">Day</th>
-                                    <th>Scheduled Subjects</th>
+                                    <th style="width: 120px;">Day</th>
+                                    <th style="width: 180px;">Time Slot</th>
+                                    <th>Subject</th>
+                                    <th style="width: 80px;" class="text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="tt-preview-body">
-                                <tr><td colspan="2" class="text-center">Select Branch & Batch above</td></tr>
+                                <tr><td colspan="4" class="text-center">Select Branch & Batch above</td></tr>
                             </tbody>
                         </table>
                     </div>

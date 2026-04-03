@@ -50,6 +50,9 @@ const snapshotToObj = (snap) => {
 
 // Authentication State Listener
 let isAdminMaster = false;
+let isHOD = false;
+let currentAdminData = null;
+
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     const dbRef = ref(db);
@@ -57,11 +60,15 @@ onAuthStateChanged(auth, async (user) => {
       const snapshot = await get(child(dbRef, `users/${user.uid}`));
       if (snapshot.exists()) {
         const userData = snapshot.val();
+        currentAdminData = userData;
         
         // Master Admin Check: aditrimitra@gmail.com OR role is master
         isAdminMaster = (user.email === "aditrimitra@gmail.com" || userData.role === "master");
+        isHOD = (userData.role === "hod");
         
-        if (userData.role === "admin" || userData.role === "master") {
+        const isAuthorized = (isAdminMaster || isHOD || userData.role === "admin");
+
+        if (isAuthorized) {
           initAdminDashboard(user, userData);
           switchView("admin");
         } else {
@@ -144,7 +151,6 @@ document.querySelectorAll(".nav-tab").forEach(tab => {
 });
 
 // --- ADMIN DASHBOARD ---
-let currentAdminData = null;
 function initAdminDashboard(user, userData) {
   currentAdminData = userData;
   const adminNameStr = isAdminMaster ? `${userData.name} (HOD)` : `${userData.name} (Teacher)`;
@@ -224,25 +230,28 @@ function initAdminDashboard(user, userData) {
   });
 
 
-  // Add subject listener
+  // Add subject listener (Safety check)
   const addSubjBtn = document.getElementById("btn-add-subject");
-  const newAddSubjBtn = addSubjBtn.cloneNode(true);
-  addSubjBtn.parentNode.replaceChild(newAddSubjBtn, addSubjBtn);
-  newAddSubjBtn.addEventListener("click", async () => {
-    const subjName = prompt("Enter new subject name:");
-    if (!subjName || subjName.trim() === "") return;
-    try {
-      await set(ref(db, `subjects/${subjName.trim()}`), { created: Date.now() });
-      showToast("Subject added successfully");
-    } catch (e) {
-      showToast("Error adding subject", "error");
-    }
-  });
+  if (addSubjBtn) {
+      const newAddSubjBtn = addSubjBtn.cloneNode(true);
+      addSubjBtn.parentNode.replaceChild(newAddSubjBtn, addSubjBtn);
+      newAddSubjBtn.addEventListener("click", async () => {
+        const subjName = prompt("Enter new subject name:");
+        if (!subjName || subjName.trim() === "") return;
+        try {
+          await set(ref(db, `subjects/${subjName.trim()}`), { created: Date.now() });
+          showToast("Subject added successfully");
+        } catch (e) {
+          showToast("Error adding subject", "error");
+        }
+      });
+  }
 
-  // Listen for queries
+  // Listen for queries (Safety check)
   const queriesRef = ref(db, "queries");
   onValue(queriesRef, (snapshot) => {
     const tbody = document.getElementById("admin-queries-body");
+    if(!tbody) return;
     tbody.innerHTML = "";
     if (snapshot.exists()) {
       const data = snapshot.val();
@@ -271,14 +280,36 @@ function initAdminDashboard(user, userData) {
 
   // Role based form toggling
   const roleSelect = document.getElementById("admin-reg-role");
-  const fieldSubjects = document.getElementById("field-subjects");
   
   if (!isAdminMaster) {
-      // Teachers cannot create other Teachers/HODs
-      document.getElementById("opt-reg-admin")?.remove();
+      // Teachers/HODs cannot create other HODs
+      roleSelect.querySelector('option[value="hod"]')?.remove();
+      // Hide roles tab for anyone except Master
+      document.getElementById("tab-roles").style.display = "none";
   } else {
-      // Show Roles tab for HOD
+      // Show Roles tab for Master
       document.getElementById("tab-roles").style.display = "flex";
+      
+      // Add HOD option to registration if not already there
+      if (!roleSelect.querySelector('option[value="hod"]')) {
+          const opt = document.createElement("option");
+          opt.value = "hod";
+          opt.textContent = "Department HOD";
+          roleSelect.appendChild(opt);
+      }
+  }
+
+  // Branch Locking for HODs
+  if (isHOD && userData.branch) {
+      const lockSels = ["admin-branch", "admin-reg-branch", "tt-branch-select"];
+      lockSels.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+              el.value = userData.branch;
+              el.disabled = true;
+          }
+      });
+      // Also lock batch if teacher? (User didn't specify, so leaving batch free for now)
   }
 
   // Initialize HOD-only Managers only once
@@ -546,7 +577,15 @@ async function loadLeaderboard() {
         const attendance = attSnap.exists() ? attSnap.val() : {};
 
         const students = Object.keys(users)
-            .filter(uid => users[uid].role === "student")
+            .filter(studentUid => {
+                const s = users[studentUid];
+                const matchesRole = s.role === "student";
+                // If current admin is HOD, only show their branch
+                if (!isAdminMaster && currentAdminData && currentAdminData.branch) {
+                    return matchesRole && s.branch === currentAdminData.branch;
+                }
+                return matchesRole;
+            })
             .map(uid => ({
                 uid,
                 name: users[uid].name,
@@ -610,14 +649,22 @@ async function loadRoster() {
       return;
     }
 
-    const users = snapshot.val();
     // Filter students by branch and batch
     const students = Object.keys(users)
-      .filter((uid) => 
-          users[uid].role === "student" && 
-          users[uid].branch === branch && 
-          users[uid].batch === batch
-      )
+      .filter((uid) => {
+          const u = users[uid];
+          const isStudent = u.role === "student";
+          const matchesBranch = u.branch === branch;
+          const matchesBatch = u.batch === batch;
+          
+          let authorized = isStudent && matchesBranch && matchesBatch;
+          
+          // If NOT Master, must match admin's own branch
+          if (!isAdminMaster && currentAdminData && u.branch !== currentAdminData.branch) {
+              authorized = false;
+          }
+          return authorized;
+      })
       .map((uid) => ({ uid, ...users[uid] }));
 
     currentAdminStudents = students;
