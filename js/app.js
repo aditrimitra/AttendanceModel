@@ -507,3 +507,16 @@ async function loadTodaySchedule() {
     }
 }
 
+// Global Password Visibility Toggle
+document.addEventListener("click", (e) => {
+    const toggle = e.target.closest(".toggle-password");
+    if (toggle) {
+        const input = toggle.parentElement.querySelector("input");
+        if (input) {
+            const isPass = input.type === "password";
+            input.type = isPass ? "text" : "password";
+            toggle.textContent = isPass ? "visibility_off" : "visibility";
+        }
+    }
+});
+

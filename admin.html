@@ -46,9 +46,10 @@
                     <input type="email" id="login-email" placeholder="Admin Email" required>
                 </div>
                 
-                <div class="input-group">
+                <div class="input-group" style="position: relative;">
                     <span class="material-icons input-icon">lock</span>
                     <input type="password" id="login-password" placeholder="Password" required>
+                    <span class="material-icons toggle-password" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 1.2rem;">visibility</span>
                 </div>
                 
                 <button type="submit" class="btn primary full-width" id="btn-login-submit">
@@ -176,7 +177,7 @@
                     <div class="panel-header">
                         <h3 class="gradient-text">Create Account</h3>
                     </div>
-                    <form id="admin-register-form" class="admin-form">
+                    <form id="admin-register-form" class="admin-form" autocomplete="off">
                         <div class="admin-form-row">
                             <div class="input-group">
                                 <label>Account Role</label>
@@ -187,15 +188,15 @@
                             </div>
                             <div class="input-group">
                                 <label><span class="material-icons">badge</span> ID / Registration No.</label>
-                                <input type="text" id="admin-reg-regd" placeholder="Must be unique" required>
+                                <input type="text" id="admin-reg-regd" placeholder="Must be unique" required autocomplete="off">
                             </div>
                             <div class="input-group">
                                 <label><span class="material-icons">person</span> Full Name</label>
-                                <input type="text" id="admin-reg-name" placeholder="Enter Full Name" required>
+                                <input type="text" id="admin-reg-name" placeholder="Enter Full Name" required autocomplete="off">
                             </div>
                             <div class="input-group">
                                 <label><span class="material-icons">email</span> Email Address</label>
-                                <input type="email" id="admin-reg-email" placeholder="Unique Email" required>
+                                <input type="email" id="admin-reg-email" placeholder="Unique Email" required autocomplete="off">
                             </div>
                             <!-- Role Specific Fields -->
                             <div class="input-group" id="field-branch">
@@ -220,9 +221,10 @@
                                     <option value="6">6</option>
                                 </select>
                             </div>
-                            <div class="input-group">
+                            <div class="input-group" style="position: relative;">
                                 <label><span class="material-icons">lock</span> Password</label>
-                                <input type="password" id="admin-reg-password" placeholder="Min 6 characters" required>
+                                <input type="password" id="admin-reg-password" placeholder="Fallback: 123456" autocomplete="new-password">
+                                <span class="material-icons toggle-password" style="position: absolute; right: 1rem; bottom: 0.8rem; cursor: pointer; color: var(--text-muted); font-size: 1.2rem;">visibility</span>
                             </div>
                         </div>
 
@@ -284,6 +286,14 @@
                         <div class="flex-row" style="margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                             <select id="roles-subject-branch-select" class="glass-select" style="flex: 1; min-width: 120px;">
                                 <option value="" disabled selected>Branch</option>
+                            </select>
+                            <select id="roles-subject-sem-select" class="glass-select" style="flex: 0.5; min-width: 80px;">
+                                <option value="1">Sem 1</option>
+                                <option value="2">Sem 2</option>
+                                <option value="3">Sem 3</option>
+                                <option value="4">Sem 4</option>
+                                <option value="5">Sem 5</option>
+                                <option value="6">Sem 6</option>
                             </select>
                             <input type="text" id="roles-new-subject-input" class="glass-input" placeholder="e.g. Mathematics" style="flex: 2; min-width: 150px;">
                             <button id="btn-roles-add-subject" class="btn primary">Add</button>

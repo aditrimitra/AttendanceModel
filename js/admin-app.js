@@ -16,6 +16,12 @@ import {
   sendPasswordResetEmail
 } from "./firebase-init.js";
 
+// Helper: Format Name to Title Case (e.g. AKASH -> Akash)
+const formatTitleCase = (str) => {
+    if (!str) return "";
+    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
 // DOM Elements
 const views = {
   login: document.getElementById("login-view"),
@@ -54,6 +60,7 @@ const snapshotToObj = (snap) => {
 let isAdminMaster = false;
 let isHOD = false;
 let currentAdminData = null;
+let currentAdminStudents = [];
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
@@ -188,6 +195,9 @@ function initAdminDashboard(user, userData) {
   document.getElementById("admin-name-display-desktop").textContent = adminNameStr;
   document.getElementById("admin-name-display-mobile").textContent = adminNameStr;
 
+  const fieldSubjects = document.getElementById("field-subjects");
+  const errorEl = document.getElementById("admin-reg-error");
+
   const tabAccounts = document.getElementById("tab-accounts");
   const tabRoles = document.getElementById("tab-roles");
   if (isAdminMaster) {
@@ -201,32 +211,31 @@ function initAdminDashboard(user, userData) {
   // Set default date to today
   document.getElementById("admin-date").valueAsDate = new Date();
 
-  // Listen for subjects
-  const subjectsRef = ref(db, "subjects");
-  onValue(subjectsRef, async (snap) => {
+  // Listen for subjects based on current selection
+  const refreshGlobalSubjects = async () => {
+    const branch = document.getElementById("admin-branch")?.value;
+    const sem = document.getElementById("admin-sem")?.value;
     const sel = document.getElementById("admin-subject");
+    if (!branch || !sem || !sel) return;
+
+    const subjectsRef = ref(db, `subjects/${branch}/${sem}`);
+    const snap = await get(subjectsRef);
     const oldVal = sel.value;
-    sel.innerHTML = '<option value="" disabled selected>Select Subject</option>';
     
     if (snap.exists()) {
-      const allSubjectsInBase = snapshotToObj(snap); // Helper to get keys
-      let subjectsToShow = Object.keys(allSubjectsInBase);
+        const allSubjects = Object.keys(snap.val());
+        let subjectsToShow = allSubjects;
 
-      // Filtering logic by Timetable and Role will be handled in refreshSubjFilter
-      if (!isAdminMaster && userData.subjects) {
-          subjectsToShow = subjectsToShow.filter(s => userData.subjects.includes(s));
-      }
+        if (!isAdminMaster && userData.subjects) {
+            subjectsToShow = allSubjects.filter(s => userData.subjects.includes(s));
+        }
 
-      if (subjectsToShow.length > 0) {
-          subjectsToShow.forEach(s => {
-            const opt = document.createElement("option");
-            opt.value = opt.textContent = s;
-            sel.appendChild(opt);
-          });
-      }
+        // We only populate if we aren't currently in "Timetable Filtered" mode (refreshSubjFilter handles that)
+        // But for fallback, we need this list.
+        return subjectsToShow;
     }
-    if (sel.querySelector(`option[value="${oldVal}"]`)) sel.value = oldVal;
-  });
+    return [];
+  };
 
   // Re-run filter when date/branch/semester changes
   const refreshSubjFilter = async () => {
@@ -250,7 +259,16 @@ function initAdminDashboard(user, userData) {
 
       let allowedEntries = [];
       if (isAdminMaster) {
-          allowedEntries = ttEntries.length > 0 ? ttEntries : [{ subject: "Generic Class", timeSlot: "Anytime", teacherName: "Admin" }];
+          if (ttEntries.length > 0) {
+              allowedEntries = ttEntries;
+          } else {
+              // Fallback: Fetch all global subjects for this Branch/Sem
+              const globalSubjs = await refreshGlobalSubjects();
+              allowedEntries = globalSubjs.map(s => ({ subject: s, timeSlot: "Anytime", teacherName: "Admin" }));
+              if (allowedEntries.length === 0) {
+                  allowedEntries = [{ subject: "Generic Class", timeSlot: "Anytime", teacherName: "Admin" }];
+              }
+          }
       } else {
           const teacherSubjects = userData.subjects || [];
           allowedEntries = ttEntries.filter(e => teacherSubjects.includes(e.subject));
@@ -398,33 +416,19 @@ function initAdminDashboard(user, userData) {
     adminRegForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const btn = document.getElementById("btn-admin-register");
-      
-      const role = document.getElementById("admin-reg-role").value;
-      const regdNo = document.getElementById("admin-reg-regd").value.trim();
-      const name = document.getElementById("admin-reg-name").value;
-      const email = document.getElementById("admin-reg-email").value.trim();
-      const branch = document.getElementById("admin-reg-branch").value.trim();
-      const sem = document.getElementById("admin-reg-sem").value.trim();
-      const password = document.getElementById("admin-reg-password").value;
-      
-      let subjects = "";
-      if (role === 'admin') {
-         subjects = document.getElementById("admin-reg-subjects").value.trim();
-      }
-      const errorEl = document.getElementById("admin-reg-error");
-      
       btn.disabled = true;
-      btn.innerHTML = '<span class="material-icons">hourglass_empty</span> Creating...';
-      errorEl.textContent = "";
-
+      btn.innerHTML = 'Creating... <span class="material-icons">hourglass_empty</span>';
+      
       try {
-        if (!branch || !sem) throw new Error("Branch and Semester must be selected.");
-
-        const mappingRef = ref(db, `regd_to_email/${regdNo}`);
-        const mappingSnap = await get(mappingRef);
-        if (mappingSnap.exists()) {
-            throw new Error(`ID '${regdNo}' is already taken.`);
-        }
+        const role = document.getElementById("admin-reg-role").value;
+        const regdNo = document.getElementById("admin-reg-regd").value.trim().toUpperCase();
+        const rawName = document.getElementById("admin-reg-name").value.trim();
+        const name = formatTitleCase(rawName);
+        const email = document.getElementById("admin-reg-email").value.trim();
+        const branch = document.getElementById("admin-reg-branch").value.trim();
+        const sem = document.getElementById("admin-reg-sem").value.trim();
+        const rawPassword = document.getElementById("admin-reg-password").value;
+        const password = rawPassword || "123456";
 
         const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
         const newUid = cred.user.uid;
@@ -441,18 +445,28 @@ function initAdminDashboard(user, userData) {
         };
 
         if (role === "admin") {
-            userDataToSave.subjects = subjects.split(",").map(s => s.trim()).filter(s => s !== "");
+            const subjectsInput = document.getElementById("admin-reg-subjects");
+            const subjectsVal = subjectsInput ? subjectsInput.value : "";
+            userDataToSave.subjects = subjectsVal.split(",").map(s => s.trim()).filter(s => s !== "");
         }
 
         await set(ref(db, `users/${newUid}`), userDataToSave);
-        await set(mappingRef, email);
+        await set(ref(db, `regd_to_email/${regdNo}`), email);
+        
+        // Instant Reset Email for the user
+        try {
+           await sendPasswordResetEmail(auth, email);
+        } catch (mailErr) {
+           console.warn("Reset email failed but account created", mailErr);
+        }
+
         await signOut(secondaryAuth);
 
         showToast(`Account for ${name} created successfully!`);
         adminRegForm.reset();
       } catch (err) {
-        errorEl.textContent = err.message;
-        showToast("Creation failed", "error");
+        if (errorEl) errorEl.textContent = err.message;
+        showToast("Creation failed: " + err.message, "error");
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<span class="material-icons">person_add</span> Create Selected Account';
@@ -505,36 +519,41 @@ function initRoleManagement() {
         listSubjects.innerHTML = "";
         if (snap.exists()) {
             const data = snap.val();
-            Object.keys(data).forEach(key => {
-                const item = data[key];
+            Object.keys(data).forEach(branchName => {
+                const branchObj = data[branchName];
                 
-                // If the item itself has 'created', it's a legacy flat subject
-                if (item.created) {
-                    const li = document.createElement("li");
-                    li.className = "role-item-display";
-                    li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px; display:flex; justify-content:space-between; align-items:center;";
-                    li.innerHTML = `
-                        <span><b>${key}</b> <small class="text-muted">(Legacy)</small></span>
-                        <button class="btn icon-btn btn-delete-subject" data-path="subjects/${key}">
-                            <span class="material-icons" style="color:var(--danger); font-size:1.1rem;">delete</span>
-                        </button>
-                    `;
-                    listSubjects.appendChild(li);
-                } else {
-                    // It's a branch container
-                    Object.keys(item).forEach(subjName => {
+                // Handle Branch -> Sem -> Subject nested structure
+                Object.keys(branchObj).forEach(semOrSubj => {
+                    const item = branchObj[semOrSubj];
+                    
+                    if (item.created) {
+                        // Legacy single-level subject: subjects/branch/subj
                         const li = document.createElement("li");
                         li.className = "role-item-display";
                         li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px; display:flex; justify-content:space-between; align-items:center;";
                         li.innerHTML = `
-                            <span><b>${subjName}</b> <small style="color:var(--primary)">(${key})</small></span>
-                            <button class="btn icon-btn btn-delete-subject" data-path="subjects/${key}/${subjName}">
+                            <span><b>${semOrSubj}</b> <small style="color:var(--primary)">(${branchName})</small></span>
+                            <button class="btn icon-btn btn-delete-subject" data-path="subjects/${branchName}/${semOrSubj}">
                                 <span class="material-icons" style="color:var(--danger); font-size:1.1rem;">delete</span>
                             </button>
                         `;
                         listSubjects.appendChild(li);
-                    });
-                }
+                    } else {
+                        // Structured: subjects/branch/sem/subj
+                        Object.keys(item).forEach(subjectName => {
+                            const li = document.createElement("li");
+                            li.className = "role-item-display";
+                            li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px; display:flex; justify-content:space-between; align-items:center;";
+                            li.innerHTML = `
+                                <span><b>${subjectName}</b> <small style="color:var(--primary)">(${branchName} - Sem ${semOrSubj})</small></span>
+                                <button class="btn icon-btn btn-delete-subject" data-path="subjects/${branchName}/${semOrSubj}/${subjectName}">
+                                    <span class="material-icons" style="color:var(--danger); font-size:1.1rem;">delete</span>
+                                </button>
+                            `;
+                            listSubjects.appendChild(li);
+                        });
+                    }
+                });
             });
         }
     });
@@ -565,14 +584,15 @@ function initRoleManagement() {
 
     document.getElementById("btn-roles-add-subject")?.addEventListener("click", async () => {
         const branch = document.getElementById("roles-subject-branch-select").value;
+        const sem = document.getElementById("roles-subject-sem-select").value;
         const val = document.getElementById("roles-new-subject-input").value.trim();
-        if(!branch || !val) {
-            showToast("Select Branch and Enter Subject", "error");
+        if(!branch || !sem || !val) {
+            showToast("Select Branch, Semester and Enter Subject", "error");
             return;
         }
-        await set(ref(db, `subjects/${branch}/${val}`), { created: Date.now() });
+        await set(ref(db, `subjects/${branch}/${sem}/${val}`), { created: Date.now() });
         document.getElementById("roles-new-subject-input").value = "";
-        showToast(`Subject ${val} added to ${branch}.`);
+        showToast(`Subject ${val} added to ${branch} (Sem ${sem}).`);
     });
 }
 
@@ -629,10 +649,11 @@ function initTimetableManagement() {
     // Populate Subjects Dropdown based on Branch
     const refreshTtSubjDropdown = async () => {
         const branch = branchSel.value;
+        const sem = semSel.value;
         const subjSel = document.getElementById("tt-subject-select");
-        if(!branch || !subjSel) return;
+        if(!branch || !sem || !subjSel) return;
 
-        const snap = await get(ref(db, `subjects/${branch}`));
+        const snap = await get(ref(db, `subjects/${branch}/${sem}`));
         subjSel.innerHTML = '<option value="" disabled selected>Select Subject</option>';
         if(snap.exists()) {
             Object.keys(snap.val()).forEach(s => {
@@ -641,7 +662,7 @@ function initTimetableManagement() {
                 subjSel.appendChild(opt);
             });
         } else {
-            subjSel.innerHTML = '<option value="" disabled selected>No subjects for this branch</option>';
+            subjSel.innerHTML = '<option value="" disabled selected>No subjects for this (Branch/Sem)</option>';
         }
     };
 
@@ -649,7 +670,10 @@ function initTimetableManagement() {
         refreshPreview();
         refreshTtSubjDropdown();
     });
-    semSel.addEventListener("change", refreshPreview);
+    semSel.addEventListener("change", () => {
+        refreshPreview();
+        refreshTtSubjDropdown();
+    });
 
     // Event Delegation for Deletion
     previewBody.addEventListener("click", async (e) => {
@@ -786,9 +810,11 @@ async function loadRoster() {
     const snapshot = await get(ref(db, "users"));
     if (!snapshot.exists()) {
       showToast("No students found.", "error");
+      btn.innerHTML = '<span class="material-icons">people</span> Load Student Roster';
       return;
     }
 
+    const users = snapshot.val();
     // Filter students by branch and semester
     const students = Object.keys(users)
       .filter((uid) => {
@@ -860,7 +886,7 @@ async function loadRoster() {
   } catch (e) {
     showToast(e.message, "error");
   } finally {
-    btn.innerHTML = '<span class="material-icons">people</span> Load Roster';
+    btn.innerHTML = '<span class="material-icons">people</span> Load Student Roster';
   }
 }
 
@@ -923,3 +949,16 @@ async function saveAttendance() {
     showToast("Failed to save: " + error.message, "error");
   }
 }
+
+// --- Global: Password Visibility Toggle ---
+document.addEventListener("click", (e) => {
+    const toggle = e.target.closest(".toggle-password");
+    if (toggle) {
+        const input = toggle.parentElement.querySelector("input");
+        if (input) {
+            const isPass = input.type === "password";
+            input.type = isPass ? "text" : "password";
+            toggle.textContent = isPass ? "visibility_off" : "visibility";
+        }
+    }
+});
