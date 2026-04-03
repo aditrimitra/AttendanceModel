@@ -327,7 +327,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Cards */
 .login-card {
-    padding: 2.5rem;
+    padding: 1rem;
     width: 100%;
     max-width: 420px;
 }
