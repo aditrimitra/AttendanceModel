@@ -446,10 +446,7 @@ h1, h2, h3, h4, h5, h6 {
         display: none !important;
     }
     .dashboard-content {
-        padding: 0.75rem !important;
-    }
-    .navbar {
-        padding: 0.8rem 1rem;
+        padding: 1.5rem 0.75rem 0.75rem !important;
     }
     .main-panel {
         padding: 1.25rem 1rem !important;
@@ -1093,4 +1090,96 @@ h1, h2, h3, h4, h5, h6 {
 
 .action-dropdown .menu-item:hover:not(.danger):not(.success) {
     color: var(--primary);
+}
+
+/* ======================================
+   Attendance Toggle Pill (Mobile Switch)
+   ====================================== */
+
+/* The two radio labels — visible on desktop, hidden on mobile */
+.switch-wrapper {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.status-radio {
+    display: none; /* Always hidden, JS reads values */
+}
+
+/* Desktop: show labels as pill buttons */
+.status-label {
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.status-radio.present:checked + .status-label {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+}
+
+.status-radio.absent:checked + .status-label {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+}
+
+.status-label:not(.status-radio:checked + .status-label) {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-muted);
+    border-color: rgba(255,255,255,0.1);
+}
+
+/* Mobile single-tap toggle pill */
+.att-toggle-pill {
+    display: none; /* Hidden on desktop */
+}
+
+@media (max-width: 768px) {
+    /* Hide the two desktop labels on mobile */
+    .desktop-only {
+        display: none !important;
+    }
+
+    /* Show the single toggle pill on mobile */
+    .att-toggle-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1.4rem;
+        border-radius: 999px;
+        border: none;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        min-width: 90px;
+        letter-spacing: 0.02em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .att-toggle-pill.is-present {
+        background: var(--success);
+        color: white;
+        box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
+    }
+
+    .att-toggle-pill.is-absent {
+        background: var(--danger);
+        color: white;
+        box-shadow: 0 3px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    .att-toggle-pill:active {
+        transform: scale(0.95);
+    }
 }

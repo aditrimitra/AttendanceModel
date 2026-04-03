@@ -869,10 +869,16 @@ async function loadRoster() {
       let attendanceHTML = `
             <div class="switch-wrapper">
                 <input type="radio" name="att-${student.uid}" id="pres-${student.uid}" value="present" class="status-radio present" ${status === "present" ? "checked" : ""}>
-                <label for="pres-${student.uid}" class="status-label">Present</label>
+                <label for="pres-${student.uid}" class="status-label desktop-only">Present</label>
                 
                 <input type="radio" name="att-${student.uid}" id="abs-${student.uid}" value="absent" class="status-radio absent" ${status === "absent" ? "checked" : ""}>
-                <label for="abs-${student.uid}" class="status-label">Absent</label>
+                <label for="abs-${student.uid}" class="status-label desktop-only">Absent</label>
+
+                <button type="button" class="att-toggle-pill ${status === 'present' ? 'is-present' : 'is-absent'}" 
+                    data-uid="${student.uid}"
+                    data-status="${status}">
+                    ${status === 'present' ? 'Present' : 'Absent'}
+                </button>
             </div>
       `;
 
@@ -915,8 +921,28 @@ async function loadRoster() {
 }
 
 
-// Toggle Actions Dropdown
+// Toggle Actions Dropdown + Attendance Toggle Pill
 document.addEventListener("click", (e) => {
+
+    // --- Mobile Attendance Toggle Pill ---
+    const pill = e.target.closest(".att-toggle-pill");
+    if (pill) {
+        const uid = pill.dataset.uid;
+        const currentStatus = pill.dataset.status;
+        const newStatus = currentStatus === "present" ? "absent" : "present";
+
+        // Update the hidden radio
+        const radio = document.getElementById(newStatus === "present" ? `pres-${uid}` : `abs-${uid}`);
+        if (radio) radio.checked = true;
+
+        // Update pill appearance
+        pill.dataset.status = newStatus;
+        pill.textContent = newStatus === "present" ? "Present" : "Absent";
+        pill.classList.toggle("is-present", newStatus === "present");
+        pill.classList.toggle("is-absent", newStatus === "absent");
+        return;
+    }
+
     const moreBtn = e.target.closest(".btn-more");
     const allDropdowns = document.querySelectorAll(".action-dropdown");
     
