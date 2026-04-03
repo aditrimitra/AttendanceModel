@@ -64,8 +64,8 @@ onAuthStateChanged(auth, async (user) => {
         const userData = snapshot.val();
         currentAdminData = userData;
         
-        // Master Admin Check: aditrimitra@gmail.com OR role is master
-        isAdminMaster = (user.email === "aditrimitra@gmail.com" || userData.role === "master");
+        // Power User Check: aditrimitra@gmail.com OR role is master OR role is admin
+        isAdminMaster = (user.email === "aditrimitra@gmail.com" || userData.role === "master" || userData.role === "admin");
         isHOD = (userData.role === "hod");
         
         const isAuthorized = (isAdminMaster || isHOD || userData.role === "admin");
@@ -184,9 +184,19 @@ document.querySelectorAll(".nav-tab").forEach(tab => {
 // --- ADMIN DASHBOARD ---
 function initAdminDashboard(user, userData) {
   currentAdminData = userData;
-  const adminNameStr = isAdminMaster ? `${userData.name} (HOD)` : `${userData.name} (Teacher)`;
+  const adminNameStr = isAdminMaster ? `${userData.name} (Admin)` : `${userData.name} (HOD)`;
   document.getElementById("admin-name-display-desktop").textContent = adminNameStr;
   document.getElementById("admin-name-display-mobile").textContent = adminNameStr;
+
+  const tabAccounts = document.getElementById("tab-accounts");
+  const tabRoles = document.getElementById("tab-roles");
+  if (isAdminMaster) {
+      tabAccounts?.classList.remove("hidden");
+      tabRoles?.style.setProperty("display", "flex", "important"); // Ensure it shows up
+  } else {
+      tabAccounts?.classList.add("hidden");
+      tabRoles?.style.setProperty("display", "none", "important");
+  }
 
   // Set default date to today
   document.getElementById("admin-date").valueAsDate = new Date();

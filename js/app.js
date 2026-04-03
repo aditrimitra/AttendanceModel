@@ -56,28 +56,37 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // Authentication State Listener
 onAuthStateChanged(auth, async (user) => {
+  const studentNav = document.getElementById("student-nav");
   if (user) {
-    // Fetch user data
     const dbRef = ref(db);
     try {
       const snapshot = await get(child(dbRef, `users/${user.uid}`));
       if (snapshot.exists()) {
         const userData = snapshot.val();
-        if (userData.role === "admin") {
-          // If admin somehow logs in here (shouldn't happen with RegdNo), redirect
-          window.location.href = "admin.html";
-        } else {
+        const isAdminMaster = (userData.role === "admin" || userData.role === "master" || user.email === "aditrimitra@gmail.com");
+        
+        if (isAdminMaster) {
+           // Admin/Master should always go to admin portal
+           window.location.href = "admin.html";
+           return;
+        }
+
+        if (userData.role === "student") {
           initStudentDashboard(user, userData);
+          studentNav?.classList.remove("hidden");
           switchView("student");
+        } else {
+          showToast("Access Denied: Student account required.", "error");
+          signOut(auth);
         }
       } else {
-        showToast("User role not found.", "error");
         signOut(auth);
       }
     } catch (error) {
-      console.error("Error fetching user data", error);
+      console.error(error);
     }
   } else {
+    studentNav?.classList.add("hidden");
     switchView("login");
   }
 });
