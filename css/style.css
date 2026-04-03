@@ -456,11 +456,29 @@ h1, h2, h3, h4, h5, h6 {
     .admin-nav {
         display: none !important;
     }
+    
+    /* Reduced padding for maximum screen usage */
     .dashboard-content {
-        padding: 1.5rem 0.75rem 0.75rem !important;
+        padding: 1.25rem 0.35rem 0.5rem !important;
     }
     .main-panel {
+        padding: 1rem 0.5rem !important;
+    }
+    
+    /* Stat Cards Optimization */
+    .stat-card, .action-card {
         padding: 1.25rem 1rem !important;
+    }
+    .stat-value {
+        font-size: 2rem !important; /* Smaller stat text */
+    }
+    
+    /* Smaller Typography */
+    h3 {
+        font-size: 1.1rem !important;
+    }
+    .gradient-text {
+        font-size: 1.2rem !important;
     }
 
     /* Hide elements not needed on mobile */
@@ -470,14 +488,14 @@ h1, h2, h3, h4, h5, h6 {
 
     /* Compact table headers on mobile */
     .glass-table thead th {
-        font-size: 0.75rem !important;
-        padding: 0.6rem 0.5rem !important;
-        letter-spacing: 0.03em;
+        font-size: 0.7rem !important;
+        padding: 0.5rem 0.4rem !important;
+        letter-spacing: 0.02em;
     }
 
     .glass-table tbody td {
-        padding: 0.6rem 0.5rem !important;
-        font-size: 0.9rem !important;
+        padding: 0.5rem 0.4rem !important;
+        font-size: 0.85rem !important;
     }
 
     /* Table Responsive Roster Stacking — Name on top, RegNo below */
