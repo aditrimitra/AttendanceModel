@@ -322,7 +322,7 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+    /* padding: 2rem; */
 }
 
 /* Cards */
@@ -1280,4 +1280,39 @@ h1, h2, h3, h4, h5, h6 {
 
 .login-footer-link a:hover {
     color: var(--text);
+}
+
+/* Mobile Login Optimization (for 395px heights / standard phones to prevent scrolling) */
+@media (max-width: 480px) {
+    .login-page-wrapper {
+        padding: 0.75rem;
+    }
+    
+    .login-card {
+        padding: 1.5rem 1.25rem; /* Drastically reduce inner padding */
+        margin: 10px
+    }
+    
+    .login-logo-ring {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 0.5rem; /* Less space under logo */
+    }
+    
+    .login-logo-ring .brand-icon {
+        font-size: 1.5rem;
+    }
+    
+    .login-subtitle {
+        margin-bottom: 1.25rem; /* Less space above inputs */
+        font-size: 0.75rem;
+    }
+    
+    .login-footer-link {
+        margin-top: 1.25rem; /* Less space above footer link */
+    }
+    
+    .input-group {
+        margin-bottom: 1rem; /* Less vertical margin on inputs */
+    }
 }
