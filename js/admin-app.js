@@ -187,21 +187,21 @@ function initAdminDashboard(user, userData) {
     if (sel.querySelector(`option[value="${oldVal}"]`)) sel.value = oldVal;
   });
 
-  // Re-run filter when date/branch/batch changes
+  // Re-run filter when date/branch/semester changes
   const refreshSubjFilter = async () => {
       const branch = document.getElementById("admin-branch")?.value;
-      const batch = document.getElementById("admin-batch")?.value;
+      const sem = document.getElementById("admin-sem")?.value;
       const date = document.getElementById("admin-date")?.value;
       
       const sel = document.getElementById("admin-subject");
-      if(!branch || !batch || !date) {
-          sel.innerHTML = '<option value="" disabled selected>Select Branch/Batch/Date First</option>';
+      if(!branch || !sem || !date) {
+          sel.innerHTML = '<option value="" disabled selected>Select Branch/Semester/Date First</option>';
           return;
       }
 
       const dateObj = new Date(date);
       const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-      const ttSnap = await get(ref(db, `timetable/${branch}/${batch}/${dayName}`));
+      const ttSnap = await get(ref(db, `timetable/${branch}/${sem}/${dayName}`));
       
       const ttEntries = ttSnap.exists() ? Object.values(ttSnap.val()) : [];
       const ttSubjectNames = ttEntries.map(e => e.subject);
@@ -232,7 +232,7 @@ function initAdminDashboard(user, userData) {
       if (ttSubjectNames.includes(currentVal)) sel.value = currentVal;
   };
 
-  ["admin-branch", "admin-batch", "admin-date"].forEach(id => {
+  ["admin-branch", "admin-sem", "admin-date"].forEach(id => {
       document.getElementById(id)?.addEventListener("change", refreshSubjFilter);
   });
 
@@ -316,7 +316,6 @@ function initAdminDashboard(user, userData) {
               el.disabled = true;
           }
       });
-      // Also lock batch if teacher? (User didn't specify, so leaving batch free for now)
   }
 
   // Initialize HOD-only Managers only once
@@ -353,21 +352,6 @@ function initAdminDashboard(user, userData) {
       });
   });
 
-  onValue(ref(db, "roles/batches"), (snap) => {
-      const html = '<option value="" disabled selected>Select Batch</option>';
-      batchSels.forEach(sel => {
-          if(!sel) return;
-          sel.innerHTML = html;
-          if (snap.exists()) {
-              Object.keys(snap.val()).forEach(b => {
-                  const opt = document.createElement("option");
-                  opt.value = opt.textContent = b;
-                  sel.appendChild(opt);
-              });
-          }
-      });
-  });
-
   roleSelect.addEventListener("change", (e) => {
     if (e.target.value === "admin") {
         fieldSubjects.classList.remove("hidden");
@@ -388,7 +372,7 @@ function initAdminDashboard(user, userData) {
       const name = document.getElementById("admin-reg-name").value;
       const email = document.getElementById("admin-reg-email").value.trim();
       const branch = document.getElementById("admin-reg-branch").value.trim();
-      const batch = document.getElementById("admin-reg-batch").value.trim();
+      const sem = document.getElementById("admin-reg-sem").value.trim();
       const password = document.getElementById("admin-reg-password").value;
       
       let subjects = "";
@@ -418,7 +402,7 @@ function initAdminDashboard(user, userData) {
           email: email,
           role: role,
           branch: branch,
-          batch: batch,
+          sem: sem,
           createdAt: Date.now(),
           regdNo: regdNo,
           status: "active"
@@ -464,19 +448,6 @@ function initRoleManagement() {
         }
     });
 
-    onValue(ref(db, "roles/batches"), snap => {
-        listBatches.innerHTML = "";
-        if (snap.exists()) {
-            Object.keys(snap.val()).forEach(b => {
-                const li = document.createElement("li");
-                li.className = "role-item-display";
-                li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px; display:flex; justify-content:space-between; align-items:center;";
-                li.innerHTML = `<span>${b}</span>`;
-                listBatches.appendChild(li);
-            });
-        }
-    });
-
     onValue(ref(db, "subjects"), snap => {
         listSubjects.innerHTML = "";
         if (snap.exists()) {
@@ -498,14 +469,6 @@ function initRoleManagement() {
         showToast(`Branch ${val} added.`);
     });
 
-    document.getElementById("btn-add-batch")?.addEventListener("click", async () => {
-        const val = document.getElementById("new-batch-input").value.trim();
-        if(!val) return;
-        await set(ref(db, `roles/batches/${val}`), true);
-        document.getElementById("new-batch-input").value = "";
-        showToast(`Batch ${val} added.`);
-    });
-
     document.getElementById("btn-roles-add-subject")?.addEventListener("click", async () => {
         const val = document.getElementById("roles-new-subject-input").value.trim();
         if(!val) return;
@@ -518,18 +481,18 @@ function initRoleManagement() {
 // Timetable Management (HOD)
 function initTimetableManagement() {
     const branchSel = document.getElementById("tt-branch-select");
-    const batchSel = document.getElementById("tt-batch-select");
+    const semSel = document.getElementById("tt-sem-select");
     const previewBody = document.getElementById("tt-preview-body");
 
     const refreshPreview = async () => {
         const branch = branchSel.value;
-        const batch = batchSel.value;
-        if(!branch || !batch) {
-            previewBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Select Branch & Batch to view preview</td></tr>';
+        const sem = semSel.value;
+        if(!branch || !sem) {
+            previewBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Select Branch & Semester to view preview</td></tr>';
             return;
         }
 
-        const ttRef = ref(db, `timetable/${branch}/${batch}`);
+        const ttRef = ref(db, `timetable/${branch}/${sem}`);
         const snap = await get(ttRef);
         
         previewBody.innerHTML = "";
@@ -553,7 +516,7 @@ function initTimetableManagement() {
                         <td>${entry.timeSlot || "N/A"}</td>
                         <td><b>${entry.subject}</b></td>
                         <td class="text-center">
-                            <button class="btn icon-btn btn-delete-tt" data-path="timetable/${branch}/${batch}/${day}/${id}">
+                            <button class="btn icon-btn btn-delete-tt" data-path="timetable/${branch}/${sem}/${day}/${id}">
                                 <span class="material-icons" style="color:var(--danger); font-size:1.2rem;">delete</span>
                             </button>
                         </td>
@@ -565,7 +528,7 @@ function initTimetableManagement() {
     };
 
     branchSel.addEventListener("change", refreshPreview);
-    batchSel.addEventListener("change", refreshPreview);
+    semSel.addEventListener("change", refreshPreview);
 
     // Event Delegation for Deletion
     previewBody.addEventListener("click", async (e) => {
@@ -586,19 +549,19 @@ function initTimetableManagement() {
 
     document.getElementById("btn-add-tt-subject")?.addEventListener("click", async () => {
         const branch = branchSel.value;
-        const batch = batchSel.value;
+        const sem = semSel.value;
         const day = document.getElementById("tt-day-select").value;
         const subject = document.getElementById("tt-subject-input").value.trim();
-        const timeSlot = document.getElementById("tt-time-input").value.trim();
+        const timeSlot = document.getElementById("tt-time-select").value;
 
-        if(!branch || !batch || !subject || !timeSlot) {
-            showToast("Enter Subject and Time Slot", "error");
+        if(!branch || !sem || !subject || !timeSlot) {
+            showToast("Enter Subject and Select Time Slot", "error");
             return;
         }
 
         try {
             // Add unique entry
-            const newTtRef = push(ref(db, `timetable/${branch}/${batch}/${day}`));
+            const newTtRef = push(ref(db, `timetable/${branch}/${sem}/${day}`));
             await set(newTtRef, { 
                 subject, 
                 timeSlot,
@@ -609,7 +572,6 @@ function initTimetableManagement() {
             await set(ref(db, `subjects/${subject}`), { created: Date.now() });
 
             document.getElementById("tt-subject-input").value = "";
-            document.getElementById("tt-time-input").value = "";
             showToast(`Linked ${subject} to ${day}`);
             refreshPreview();
         } catch (err) {
@@ -636,7 +598,7 @@ async function loadLeaderboard() {
             .filter(studentUid => {
                 const s = users[studentUid];
                 const matchesRole = s.role === "student";
-                // If current admin is HOD, only show their branch
+                // Filter by HOD branch if applicable
                 if (!isAdminMaster && currentAdminData && currentAdminData.branch) {
                     return matchesRole && s.branch === currentAdminData.branch;
                 }
@@ -646,7 +608,8 @@ async function loadLeaderboard() {
                 uid,
                 name: users[uid].name,
                 regd: users[uid].regdNo,
-                branch: users[uid].branch || "N/A"
+                branch: users[uid].branch || "N/A",
+                sem: users[uid].sem || "N/A"
             }));
 
         const leaderboardData = students.map(student => {
@@ -689,10 +652,10 @@ async function loadRoster() {
   const date = document.getElementById("admin-date").value;
   const subject = document.getElementById("admin-subject").value;
   const branch = document.getElementById("admin-branch").value;
-  const batch = document.getElementById("admin-batch").value;
+  const sem = document.getElementById("admin-sem").value;
 
-  if (!date || !subject || !branch || !batch) {
-      return showToast("Please select Branch, Batch, Subject and Date", "error");
+  if (!date || !subject || !branch || !sem) {
+      return showToast("Please select Branch, Semester, Subject and Date", "error");
   }
 
   const btn = document.getElementById("btn-load-students");
@@ -705,15 +668,15 @@ async function loadRoster() {
       return;
     }
 
-    // Filter students by branch and batch
+    // Filter students by branch and semester
     const students = Object.keys(users)
       .filter((uid) => {
           const u = users[uid];
           const isStudent = u.role === "student";
           const matchesBranch = u.branch === branch;
-          const matchesBatch = u.batch === batch;
+          const matchesSem = u.sem == sem;
           
-          let authorized = isStudent && matchesBranch && matchesBatch;
+          let authorized = isStudent && matchesBranch && matchesSem;
           
           // If NOT Master, must match admin's own branch
           if (!isAdminMaster && currentAdminData && u.branch !== currentAdminData.branch) {

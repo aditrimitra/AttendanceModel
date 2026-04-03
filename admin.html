@@ -90,9 +90,15 @@
                             </select>
                         </div>
                         <div class="control-group">
-                            <label>Batch</label>
-                            <select id="admin-batch" class="glass-select">
-                                <option value="" disabled selected>Select Batch</option>
+                            <label>Semester</label>
+                            <select id="admin-sem" class="glass-select">
+                                <option value="" disabled selected>Select Semester</option>
+                                <option value="1">Semester 1</option>
+                                <option value="2">Semester 2</option>
+                                <option value="3">Semester 3</option>
+                                <option value="4">Semester 4</option>
+                                <option value="5">Semester 5</option>
+                                <option value="6">Semester 6</option>
                             </select>
                         </div>
                         <div class="control-group">
@@ -202,10 +208,16 @@
                                 <label><span class="material-icons">book</span> Subjects (Teacher Only)</label>
                                 <input type="text" id="admin-reg-subjects" placeholder="Comma separated, e.g., Math, Science">
                             </div>
-                            <div class="input-group" id="field-batch">
-                                <label><span class="material-icons">date_range</span> Batch (Year)</label>
-                                <select id="admin-reg-batch" class="glass-select">
-                                    <option value="" disabled selected>Select defined batch</option>
+                            <div class="input-group" id="field-sem">
+                                <label><span class="material-icons">date_range</span> Semester</label>
+                                <select id="admin-reg-sem" class="glass-select">
+                                    <option value="" disabled selected>Select Semester</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
                                 </select>
                             </div>
                             <div class="input-group">
@@ -246,7 +258,24 @@
                     </div>
                 </div>
             </div>
-                <!-- Manage Subjects & Timetable Configuration (HOD Only) -->
+            <!-- TAB: Roles Management (Master/HOD) -->
+            <div id="roles-view" class="tab-panel">
+                <div class="grid-2 mt-6">
+                    <div class="main-panel glass-card">
+                        <div class="panel-header">
+                            <h3 class="gradient-text">Manage Branches</h3>
+                            <p class="text-muted" style="font-size: 0.8rem;">Define departments (e.g. CSE, ME)</p>
+                        </div>
+                        <div class="flex-row" style="margin-bottom: 1rem;">
+                            <input type="text" id="new-branch-input" class="glass-input" placeholder="e.g. CSE">
+                            <button id="btn-add-branch" class="btn primary">Add</button>
+                        </div>
+                        <ul id="roles-branch-list" style="list-style:none; padding:0;">
+                             <!-- js populates -->
+                        </ul>
+                    </div>
+                </div>
+
                 <div class="grid-2 mt-6">
                     <div class="main-panel glass-card">
                         <div class="panel-header">
@@ -272,8 +301,15 @@
                                 <select id="tt-branch-select" class="glass-select"></select>
                             </div>
                             <div class="input-group">
-                                <label>Batch</label>
-                                <select id="tt-batch-select" class="glass-select"></select>
+                                <label>Semester</label>
+                                <select id="tt-sem-select" class="glass-select">
+                                    <option value="1">Semester 1</option>
+                                    <option value="2">Semester 2</option>
+                                    <option value="3">Semester 3</option>
+                                    <option value="4">Semester 4</option>
+                                    <option value="5">Semester 5</option>
+                                    <option value="6">Semester 6</option>
+                                </select>
                             </div>
                             <div class="input-group">
                                 <label>Day</label>
@@ -291,7 +327,16 @@
                                 <label>Subject & Time Slot</label>
                                 <div class="flex-row" style="gap: 0.5rem; flex-wrap: wrap;">
                                     <input type="text" id="tt-subject-input" class="glass-input" placeholder="e.g. IWT" style="flex: 2; min-width: 150px;">
-                                    <input type="text" id="tt-time-input" class="glass-input" placeholder="e.g. 10am - 12pm" style="flex: 1; min-width: 120px;">
+                                    <select id="tt-time-select" class="glass-select" style="flex: 1; min-width: 130px;">
+                                        <option value="9am - 10am">9am - 10am</option>
+                                        <option value="10am - 11am">10am - 11am</option>
+                                        <option value="11am - 12pm">11am - 12pm</option>
+                                        <option value="12pm - 1pm">12pm - 1pm</option>
+                                        <option value="1pm - 2pm">1pm - 2pm</option>
+                                        <option value="2pm - 3pm">2pm - 3pm</option>
+                                        <option value="3pm - 4pm">3pm - 4pm</option>
+                                        <option value="4pm - 5pm">4pm - 5pm</option>
+                                    </select>
                                     <button id="btn-add-tt-subject" class="btn primary" style="white-space: nowrap;">Add Slot</button>
                                 </div>
                             </div>
@@ -315,7 +360,7 @@
                                 </tr>
                             </thead>
                             <tbody id="tt-preview-body">
-                                <tr><td colspan="4" class="text-center">Select Branch & Batch above</td></tr>
+                                <tr><td colspan="4" class="text-center">Select Branch & Semester above</td></tr>
                             </tbody>
                         </table>
                     </div>

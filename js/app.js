@@ -151,24 +151,15 @@ let currentSem = 1;
 function initStudentDashboard(user, userData) {
   currentStudent = { uid: user.uid, ...userData };
   
-  // Semester Calculation
-  const batchYear = userData.batch ? parseInt(userData.batch) : new Date().getFullYear();
-  const now = new Date();
-  const start = new Date(batchYear, 7, 1); // August 1st
-  let sem = 1;
-
-  if (now > start) {
-      const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-      sem = Math.floor(diffMonths / 6) + 1;
-  }
-  if (sem < 1) sem = 1;
+  // Use Hardcoded Semester from Profile
+  const sem = userData.sem || "1";
   currentSem = sem;
 
   document.getElementById("student-name-display-desktop").textContent = userData.name;
   document.getElementById("student-sem-display-desktop").textContent = `Sem ${sem}`;
   document.getElementById("student-name-display-mobile").textContent = userData.name;
   document.getElementById("student-sem-display-mobile").textContent = `Sem ${sem}`;
-  document.getElementById("leaderboard-batch-title").textContent = `${userData.branch || 'Unknown'} - Batch ${userData.batch || 'Unknown'}`;
+  document.getElementById("leaderboard-batch-title").textContent = `${userData.branch || 'Unknown'} - Sem ${sem}`;
 
   // Set filter to current month
   const currentMonth = new Date().getMonth() + 1; // 1-12
@@ -422,16 +413,16 @@ async function loadTodaySchedule() {
     dateDisplay.textContent = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     try {
-        // 1. Fetch Timetable for this student's Branch/Batch/Day
+        // 1. Fetch Timetable for this student's Branch/Sem/Day
         const branch = currentStudent.branch;
-        const batch = currentStudent.batch;
+        const sem = currentStudent.sem;
         
-        if(!branch || !batch) {
-            tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">Branch/Batch info missing.</td></tr>';
+        if(!branch || !sem) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Branch/Sem info missing.</td></tr>';
             return;
         }
 
-        const ttSnap = await get(ref(db, `timetable/${branch}/${batch}/${dayName}`));
+        const ttSnap = await get(ref(db, `timetable/${branch}/${sem}/${dayName}`));
         const ttEntries = ttSnap.exists() ? Object.values(ttSnap.val()) : [];
 
         // 2. Fetch existing attendance for today
