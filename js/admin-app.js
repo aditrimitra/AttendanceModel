@@ -11,6 +11,8 @@ import {
   get,
   child,
   onValue,
+  push,
+  update,
   sendPasswordResetEmail
 } from "./firebase-init.js";
 
@@ -132,6 +134,35 @@ document.getElementById("btn-logout-admin-desktop")?.addEventListener("click", h
 document.getElementById("btn-logout-admin-mobile")?.addEventListener("click", handleLogout);
 
 // TAB SWITCHING LOGIC
+const showConfirm = (title, msg) => {
+    return new Promise((resolve) => {
+        const modal = document.getElementById("confirm-modal");
+        const titleEl = document.getElementById("confirm-title");
+        const msgEl = document.getElementById("confirm-msg");
+        const okBtn = document.getElementById("confirm-ok");
+        const cancelBtn = document.getElementById("confirm-cancel");
+
+        if (!modal || !titleEl || !msgEl || !okBtn || !cancelBtn) {
+            console.error("Modal elements missing");
+            return resolve(confirm(msg)); // Fallback if modal DOM not found
+        }
+
+        titleEl.textContent = title;
+        msgEl.textContent = msg;
+        modal.classList.add("active");
+
+        const cleanup = (val) => {
+            modal.classList.remove("active");
+            okBtn.onclick = null;
+            cancelBtn.onclick = null;
+            resolve(val);
+        };
+
+        okBtn.onclick = () => cleanup(true);
+        cancelBtn.onclick = () => cleanup(false);
+    });
+};
+
 document.querySelectorAll(".nav-tab").forEach(tab => {
     tab.addEventListener("click", () => {
         const targetTab = tab.dataset.tab;
@@ -204,32 +235,27 @@ function initAdminDashboard(user, userData) {
       const ttSnap = await get(ref(db, `timetable/${branch}/${sem}/${dayName}`));
       
       const ttEntries = ttSnap.exists() ? Object.values(ttSnap.val()) : [];
-      const ttSubjectNames = ttEntries.map(e => e.subject);
-
       const currentVal = sel.value;
       sel.innerHTML = '<option value="" disabled selected>Select Subject</option>';
 
       let allowedEntries = [];
       if (isAdminMaster) {
-          // HOD gets all timetable entries or fallback
-          allowedEntries = ttEntries.length > 0 ? ttEntries : [{ subject: "Generic Class", timeSlot: "Anytime" }];
+          allowedEntries = ttEntries.length > 0 ? ttEntries : [{ subject: "Generic Class", timeSlot: "Anytime", teacherName: "Admin" }];
       } else {
-          // Teacher gets intersection of their subjects and timetable
           const teacherSubjects = userData.subjects || [];
           allowedEntries = ttEntries.filter(e => teacherSubjects.includes(e.subject));
-          // If no specific timetable, just show teacher's subjects
           if (ttEntries.length === 0) {
-              allowedEntries = teacherSubjects.map(s => ({ subject: s, timeSlot: "No Slot Set" }));
+              allowedEntries = teacherSubjects.map(s => ({ subject: s, timeSlot: "No Slot Set", teacherName: userData.name }));
           }
       }
 
       allowedEntries.forEach(e => {
           const opt = document.createElement("option");
           opt.value = e.subject;
-          opt.textContent = `${e.subject} (${e.timeSlot})`;
+          opt.textContent = `${e.subject} (${e.timeSlot}) - ${e.teacherName || 'N/A'}`;
           sel.appendChild(opt);
       });
-      if (ttSubjectNames.includes(currentVal)) sel.value = currentVal;
+      if (ttEntries.some(e => e.subject === currentVal)) sel.value = currentVal;
   };
 
   ["admin-branch", "admin-sem", "admin-date"].forEach(id => {
@@ -325,16 +351,12 @@ function initAdminDashboard(user, userData) {
       window.hodManagersInitialized = true;
   }
 
-  // Populate All Branch/Batch Dropdowns (Attendance, Register, Timetable)
+  // Populate All Branch Dropdowns (Attendance, Register, Timetable, Subjects)
   const branchSels = [
     document.getElementById("admin-branch"),
     document.getElementById("admin-reg-branch"),
-    document.getElementById("tt-branch-select")
-  ];
-  const batchSels = [
-    document.getElementById("admin-batch"),
-    document.getElementById("admin-reg-batch"),
-    document.getElementById("tt-batch-select")
+    document.getElementById("tt-branch-select"),
+    document.getElementById("roles-subject-branch-select")
   ];
 
   onValue(ref(db, "roles/branches"), (snap) => {
@@ -386,7 +408,7 @@ function initAdminDashboard(user, userData) {
       errorEl.textContent = "";
 
       try {
-        if (!branch || !batch) throw new Error("Branch and Batch must be selected.");
+        if (!branch || !sem) throw new Error("Branch and Semester must be selected.");
 
         const mappingRef = ref(db, `regd_to_email/${regdNo}`);
         const mappingSnap = await get(mappingRef);
@@ -442,22 +464,84 @@ function initRoleManagement() {
                 const li = document.createElement("li");
                 li.className = "role-item-display";
                 li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px; display:flex; justify-content:space-between; align-items:center;";
-                li.innerHTML = `<span>${b}</span>`;
+                li.innerHTML = `
+                  <span>${b}</span>
+                  <button class="btn icon-btn btn-delete-branch" data-branch="${b}">
+                    <span class="material-icons" style="color:var(--danger); font-size:1.1rem;">delete</span>
+                  </button>
+                `;
                 listBranches.appendChild(li);
             });
+        }
+    });
+
+    // Event Delegation for Branch Deletion
+    listBranches.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".btn-delete-branch");
+        if (btn) {
+            const b = btn.dataset.branch;
+            if (await showConfirm("Delete Branch", `Are you sure you want to delete branch '${b}'? This will remove all associated subjects and timetables.`)) {
+                try {
+                    await set(ref(db, `roles/branches/${b}`), null);
+                    showToast(`Branch ${b} removed.`);
+                } catch (err) {
+                    showToast("Failed to delete branch", "error");
+                }
+            }
         }
     });
 
     onValue(ref(db, "subjects"), snap => {
         listSubjects.innerHTML = "";
         if (snap.exists()) {
-            Object.keys(snap.val()).forEach(s => {
-                const li = document.createElement("li");
-                li.className = "role-item-display";
-                li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px;";
-                li.textContent = s;
-                listSubjects.appendChild(li);
+            const data = snap.val();
+            Object.keys(data).forEach(key => {
+                const item = data[key];
+                
+                // If the item itself has 'created', it's a legacy flat subject
+                if (item.created) {
+                    const li = document.createElement("li");
+                    li.className = "role-item-display";
+                    li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px; display:flex; justify-content:space-between; align-items:center;";
+                    li.innerHTML = `
+                        <span><b>${key}</b> <small class="text-muted">(Legacy)</small></span>
+                        <button class="btn icon-btn btn-delete-subject" data-path="subjects/${key}">
+                            <span class="material-icons" style="color:var(--danger); font-size:1.1rem;">delete</span>
+                        </button>
+                    `;
+                    listSubjects.appendChild(li);
+                } else {
+                    // It's a branch container
+                    Object.keys(item).forEach(subjName => {
+                        const li = document.createElement("li");
+                        li.className = "role-item-display";
+                        li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px; display:flex; justify-content:space-between; align-items:center;";
+                        li.innerHTML = `
+                            <span><b>${subjName}</b> <small style="color:var(--primary)">(${key})</small></span>
+                            <button class="btn icon-btn btn-delete-subject" data-path="subjects/${key}/${subjName}">
+                                <span class="material-icons" style="color:var(--danger); font-size:1.1rem;">delete</span>
+                            </button>
+                        `;
+                        listSubjects.appendChild(li);
+                    });
+                }
             });
+        }
+    });
+
+    // Event Delegation for Subject Deletion
+    listSubjects.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".btn-delete-subject");
+        if (btn) {
+            const path = btn.dataset.path;
+            if (await showConfirm("Remove Subject", "Are you sure you want to remove this subject from the global list?")) {
+                try {
+                    await set(ref(db, path), null);
+                    showToast("Subject removed.");
+                } catch (err) {
+                    showToast("Failed to delete subject", "error");
+                }
+            }
         }
     });
 
@@ -470,11 +554,15 @@ function initRoleManagement() {
     });
 
     document.getElementById("btn-roles-add-subject")?.addEventListener("click", async () => {
+        const branch = document.getElementById("roles-subject-branch-select").value;
         const val = document.getElementById("roles-new-subject-input").value.trim();
-        if(!val) return;
-        await set(ref(db, `subjects/${val}`), { created: Date.now() });
+        if(!branch || !val) {
+            showToast("Select Branch and Enter Subject", "error");
+            return;
+        }
+        await set(ref(db, `subjects/${branch}/${val}`), { created: Date.now() });
         document.getElementById("roles-new-subject-input").value = "";
-        showToast(`Subject ${val} added to global list.`);
+        showToast(`Subject ${val} added to ${branch}.`);
     });
 }
 
@@ -505,7 +593,7 @@ function initTimetableManagement() {
 
             if (entryIds.length === 0) {
                 const tr = document.createElement("tr");
-                tr.innerHTML = `<td style="font-weight:600; color:var(--primary);">${day}</td><td colspan="3" class="text-muted">No classes</td>`;
+                tr.innerHTML = `<td style="font-weight:600; color:var(--primary);">${day}</td><td colspan="4" class="text-muted">No classes</td>`;
                 previewBody.appendChild(tr);
             } else {
                 entryIds.forEach((id, idx) => {
@@ -515,6 +603,7 @@ function initTimetableManagement() {
                         ${idx === 0 ? `<td rowspan="${entryIds.length}" style="font-weight:600; color:var(--primary);">${day}</td>` : ""}
                         <td>${entry.timeSlot || "N/A"}</td>
                         <td><b>${entry.subject}</b></td>
+                        <td>${entry.teacherName || "Not Assigned"}</td>
                         <td class="text-center">
                             <button class="btn icon-btn btn-delete-tt" data-path="timetable/${branch}/${sem}/${day}/${id}">
                                 <span class="material-icons" style="color:var(--danger); font-size:1.2rem;">delete</span>
@@ -527,7 +616,29 @@ function initTimetableManagement() {
         });
     };
 
-    branchSel.addEventListener("change", refreshPreview);
+    // Populate Subjects Dropdown based on Branch
+    const refreshTtSubjDropdown = async () => {
+        const branch = branchSel.value;
+        const subjSel = document.getElementById("tt-subject-select");
+        if(!branch || !subjSel) return;
+
+        const snap = await get(ref(db, `subjects/${branch}`));
+        subjSel.innerHTML = '<option value="" disabled selected>Select Subject</option>';
+        if(snap.exists()) {
+            Object.keys(snap.val()).forEach(s => {
+                const opt = document.createElement("option");
+                opt.value = opt.textContent = s;
+                subjSel.appendChild(opt);
+            });
+        } else {
+            subjSel.innerHTML = '<option value="" disabled selected>No subjects for this branch</option>';
+        }
+    };
+
+    branchSel.addEventListener("change", () => {
+        refreshPreview();
+        refreshTtSubjDropdown();
+    });
     semSel.addEventListener("change", refreshPreview);
 
     // Event Delegation for Deletion
@@ -535,7 +646,7 @@ function initTimetableManagement() {
         const btn = e.target.closest(".btn-delete-tt");
         if (btn) {
             const path = btn.dataset.path;
-            if (confirm("Delete this timetable slot?")) {
+            if (await showConfirm("Delete Timetable Slot", "Are you sure you want to delete this timetable slot?")) {
                 try {
                     await set(ref(db, path), null); // Delete
                     showToast("Slot deleted");
@@ -551,28 +662,28 @@ function initTimetableManagement() {
         const branch = branchSel.value;
         const sem = semSel.value;
         const day = document.getElementById("tt-day-select").value;
-        const subject = document.getElementById("tt-subject-input").value.trim();
+        const subject = document.getElementById("tt-subject-select").value;
+        const teacherName = document.getElementById("tt-teacher-input").value.trim();
         const timeSlot = document.getElementById("tt-time-select").value;
 
-        if(!branch || !sem || !subject || !timeSlot) {
-            showToast("Enter Subject and Select Time Slot", "error");
+        if(!branch || !sem || !subject || !timeSlot || !teacherName) {
+            showToast("Complete all fields", "error");
             return;
         }
 
         try {
             // Add unique entry
-            const newTtRef = push(ref(db, `timetable/${branch}/${sem}/${day}`));
+            const ttPath = `timetable/${branch}/${sem}/${day}`;
+            const newTtRef = push(ref(db, ttPath));
             await set(newTtRef, { 
                 subject, 
+                teacherName,
                 timeSlot,
                 createdAt: Date.now()
             });
             
-            // Ensure subject exists globally
-            await set(ref(db, `subjects/${subject}`), { created: Date.now() });
-
-            document.getElementById("tt-subject-input").value = "";
-            showToast(`Linked ${subject} to ${day}`);
+            document.getElementById("tt-teacher-input").value = "";
+            showToast(`Task Added: ${subject} by ${teacherName}`);
             refreshPreview();
         } catch (err) {
             showToast("Failed to add: " + err.message, "error");
@@ -750,7 +861,7 @@ document.getElementById("admin-roster-body").addEventListener("click", async (e)
     const resetBtn = e.target.closest(".btn-reset-pwd");
     if (resetBtn) {
         const email = resetBtn.dataset.email;
-        if (confirm(`Send password reset email to ${email}?`)) {
+        if (await showConfirm("Reset Password", `Send password reset email to ${email}?`)) {
             try {
                 await sendPasswordResetEmail(auth, email);
                 showToast(`Password reset email sent to ${email}`);
@@ -769,7 +880,7 @@ document.getElementById("admin-roster-body").addEventListener("click", async (e)
         const newStatus = currentStatus === "suspended" ? "active" : "suspended";
         const actionWord = currentStatus === "suspended" ? "Activate" : "Suspend";
         
-        if (confirm(`Are you sure you want to ${actionWord} this account?`)) {
+        if (await showConfirm(`${actionWord} Account`, `Are you sure you want to ${actionWord} this account?`)) {
             try {
                 await set(ref(db, `users/${uid}/status`), newStatus);
                 showToast(`Account successfully ${newStatus}.`);

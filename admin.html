@@ -281,8 +281,11 @@
                         <div class="panel-header">
                             <h3 class="gradient-text">Manage Global Subjects</h3>
                         </div>
-                        <div class="flex-row" style="margin-bottom: 1rem;">
-                            <input type="text" id="roles-new-subject-input" class="glass-input" placeholder="e.g. Mathematics">
+                        <div class="flex-row" style="margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                            <select id="roles-subject-branch-select" class="glass-select" style="flex: 1; min-width: 120px;">
+                                <option value="" disabled selected>Branch</option>
+                            </select>
+                            <input type="text" id="roles-new-subject-input" class="glass-input" placeholder="e.g. Mathematics" style="flex: 2; min-width: 150px;">
                             <button id="btn-roles-add-subject" class="btn primary">Add</button>
                         </div>
                         <ul id="roles-subject-list" style="list-style:none; padding:0;">
@@ -324,21 +327,32 @@
                                 </select>
                             </div>
                             <div class="input-group">
-                                <label>Subject & Time Slot</label>
-                                <div class="flex-row" style="gap: 0.5rem; flex-wrap: wrap;">
-                                    <input type="text" id="tt-subject-input" class="glass-input" placeholder="e.g. IWT" style="flex: 2; min-width: 150px;">
-                                    <select id="tt-time-select" class="glass-select" style="flex: 1; min-width: 130px;">
-                                        <option value="9am - 10am">9am - 10am</option>
-                                        <option value="10am - 11am">10am - 11am</option>
-                                        <option value="11am - 12pm">11am - 12pm</option>
-                                        <option value="12pm - 1pm">12pm - 1pm</option>
-                                        <option value="1pm - 2pm">1pm - 2pm</option>
-                                        <option value="2pm - 3pm">2pm - 3pm</option>
-                                        <option value="3pm - 4pm">3pm - 4pm</option>
-                                        <option value="4pm - 5pm">4pm - 5pm</option>
+                                <label>Subject & Teacher</label>
+                                <div class="grid-2" style="gap: 0.5rem;">
+                                    <select id="tt-subject-select" class="glass-select">
+                                        <option value="" disabled selected>Select Branch First</option>
                                     </select>
-                                    <button id="btn-add-tt-subject" class="btn primary" style="white-space: nowrap;">Add Slot</button>
+                                    <input type="text" id="tt-teacher-input" class="glass-input" placeholder="Teacher Name (e.g. Prof. Sharma)">
                                 </div>
+                            </div>
+                            <div class="input-group">
+                                <label>Time Slot</label>
+                                <select id="tt-time-select" class="glass-select">
+                                    <option value="" disabled selected>Select Time</option>
+                                    <option value="9am - 10am">9am - 10am</option>
+                                    <option value="10am - 11am">10am - 11am</option>
+                                    <option value="11am - 12pm">11am - 12pm</option>
+                                    <option value="12pm - 1pm">12pm - 1pm</option>
+                                    <option value="1pm - 2pm">1pm - 2pm</option>
+                                    <option value="2pm - 3pm">2pm - 3pm</option>
+                                    <option value="3pm - 4pm">3pm - 4pm</option>
+                                    <option value="4pm - 5pm">4pm - 5pm</option>
+                                </select>
+                            </div>
+                            <div class="control-group action-align" style="margin-top: 0.5rem;">
+                                <button id="btn-add-tt-subject" class="btn primary" style="width: 100%;">
+                                    <span class="material-icons">add_task</span> Add to Timetable
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -354,8 +368,9 @@
                             <thead>
                                 <tr>
                                     <th style="width: 120px;">Day</th>
-                                    <th style="width: 180px;">Time Slot</th>
+                                    <th style="width: 150px;">Time Slot</th>
                                     <th>Subject</th>
+                                    <th>Teacher</th>
                                     <th style="width: 80px;" class="text-center">Action</th>
                                 </tr>
                             </thead>
@@ -372,6 +387,20 @@
 
     <!-- Notification Toast -->
     <div id="toast-container" class="toast-container"></div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-card glass-card glow-border">
+            <div class="panel-header" style="justify-content: center;">
+                <h3 id="confirm-title" class="gradient-text">Confirmation</h3>
+            </div>
+            <p id="confirm-msg" class="modal-msg"></p>
+            <div class="modal-actions">
+                <button id="confirm-cancel" class="btn outline">Cancel</button>
+                <button id="confirm-ok" class="btn primary">Confirm</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="js/firebase-init.js"></script>
     <script type="module" src="js/admin-app.js"></script>

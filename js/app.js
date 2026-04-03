@@ -114,12 +114,43 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
 });
 
 // Logout
+const showConfirm = (title, msg) => {
+    return new Promise((resolve) => {
+        const modal = document.getElementById("confirm-modal");
+        const titleEl = document.getElementById("confirm-title");
+        const msgEl = document.getElementById("confirm-msg");
+        const okBtn = document.getElementById("confirm-ok");
+        const cancelBtn = document.getElementById("confirm-cancel");
+
+        if (!modal || !titleEl || !msgEl || !okBtn || !cancelBtn) {
+            console.error("Modal elements missing");
+            return resolve(confirm(msg)); // Fallback
+        }
+
+        titleEl.textContent = title;
+        msgEl.textContent = msg;
+        modal.classList.add("active");
+
+        const cleanup = (val) => {
+            modal.classList.remove("active");
+            okBtn.onclick = null;
+            cancelBtn.onclick = null;
+            resolve(val);
+        };
+
+        okBtn.onclick = () => cleanup(true);
+        cancelBtn.onclick = () => cleanup(false);
+    });
+};
+
 const handleLogout = async () => {
-  try {
-    await signOut(auth);
-    showToast("Logged out");
-  } catch (error) {
-    showToast("Logout failed", "error");
+  if (await showConfirm("Logout?", "Are you sure you want to log out of the student portal?")) {
+      try {
+        await signOut(auth);
+        showToast("Logged out");
+      } catch (error) {
+        showToast("Logout failed", "error");
+      }
   }
 };
 document.getElementById("btn-logout-student-desktop")?.addEventListener("click", handleLogout);
@@ -432,15 +463,16 @@ async function loadTodaySchedule() {
         tbody.innerHTML = "";
         
         if (ttEntries.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No classes scheduled for today.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No classes scheduled for today.</td></tr>';
             return;
         }
 
         ttEntries.forEach(entry => {
             const subj = entry.subject;
             const time = entry.timeSlot || "N/A";
+            const teacher = entry.teacherName || "N/A";
             const tr = document.createElement("tr");
-            let statusBadge = '<span class="text-muted">Not Measured</span>';
+            let statusBadge = '<span class="text-muted">Not Recorded</span>';
             
             if (attendanceToday[subj] && attendanceToday[subj][currentStudent.uid]) {
                 const status = attendanceToday[subj][currentStudent.uid];
@@ -454,6 +486,7 @@ async function loadTodaySchedule() {
             tr.innerHTML = `
                 <td>${time}</td>
                 <td><b>${subj}</b></td>
+                <td style="color:var(--primary); font-weight:500;">${teacher}</td>
                 <td>${statusBadge}</td>
             `;
             tbody.appendChild(tr);
@@ -461,7 +494,7 @@ async function loadTodaySchedule() {
 
     } catch (e) {
         console.error(e);
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Failed to load schedule.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Failed to load schedule.</td></tr>';
     }
 }
 

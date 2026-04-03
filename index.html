@@ -136,11 +136,12 @@
                                 <tr>
                                     <th>Time</th>
                                     <th>Subject</th>
+                                    <th>Teacher</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody id="student-today-body">
-                                <tr><td colspan="3" class="text-center">Loading schedule...</td></tr>
+                                <tr><td colspan="4" class="text-center text-muted">Loading schedule...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -204,7 +205,19 @@
     </div>
 
     <!-- Notification Toast -->
-    <div id="toast-container" class="toast-container"></div>
+    <!-- Custom Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-card glass-card glow-border">
+            <div class="panel-header" style="justify-content: center;">
+                <h3 id="confirm-title" class="gradient-text">Confirmation</h3>
+            </div>
+            <p id="confirm-msg" class="modal-msg" style="color: var(--text-muted); margin: 1.5rem 0; line-height: 1.6;"></p>
+            <div class="modal-actions">
+                <button id="confirm-cancel" class="btn outline">Cancel</button>
+                <button id="confirm-ok" class="btn primary">Confirm</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="js/firebase-init.js"></script>
     <script type="module" src="js/app.js"></script>
