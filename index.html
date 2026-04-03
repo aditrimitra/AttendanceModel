@@ -15,33 +15,39 @@
 
     <!-- Login View (Default) -->
     <div id="login-view" class="view-container active-view">
-        <div class="glass-panel login-card">
-            <div class="brand">
-                <span class="material-icons brand-icon">hub</span>
-                <h1 class="gradient-text">AttendEase</h1>
-                <p>Advanced Attendance Tracking</p>
+        <div class="login-page-wrapper">
+            <div class="glass-panel login-card glow-border">
+                <div class="brand">
+                    <div class="login-logo-ring">
+                        <span class="material-icons brand-icon">hub</span>
+                    </div>
+                    <h1 class="gradient-text">AttendEase</h1>
+                    <p class="login-subtitle">Student Portal &nbsp;·&nbsp; Attendance Tracking</p>
+                </div>
+
+                <form id="login-form" autocomplete="off">
+                    <div class="input-group">
+                        <span class="material-icons input-icon">badge</span>
+                        <input type="text" id="login-regd" placeholder="Registration Number" required autocomplete="off">
+                    </div>
+
+                    <div class="input-group" style="position: relative;">
+                        <span class="material-icons input-icon">lock</span>
+                        <input type="password" id="login-password" placeholder="Password" required autocomplete="new-password">
+                        <span class="material-icons toggle-password" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 1.2rem; user-select:none;">visibility</span>
+                    </div>
+
+                    <button type="submit" class="btn primary full-width" id="btn-login-submit" style="margin-top: 0.5rem;">
+                        Sign In <span class="material-icons">east</span>
+                    </button>
+
+                    <p id="login-error" class="error-msg" style="text-align:center; margin-top: 0.75rem;"></p>
+                </form>
+
+                <p class="login-footer-link">
+                    <a href="admin.html">Admin Portal &rarr;</a>
+                </p>
             </div>
-            
-            <form id="login-form">
-                <div class="input-group">
-                    <span class="material-icons input-icon">badge</span>
-                    <input type="text" id="login-regd" placeholder="Registration Number" required>
-                </div>
-                
-                <div class="input-group">
-                    <span class="material-icons input-icon">lock</span>
-                    <input type="password" id="login-password" placeholder="Password" required>
-                    <span class="material-icons toggle-password" style="position: absolute; right: 1rem; cursor: pointer; color: var(--text-muted);">visibility</span>
-                </div>
-                
-                <button type="submit" class="btn primary full-width" id="btn-login-submit">
-                    Sign In <span class="material-icons">east</span>
-                </button>
-                
-                <p id="login-error" class="error-msg"></p>
-            </form>
-            
-            <!-- Removed public registration prompt -->
         </div>
     </div>
 
