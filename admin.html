@@ -25,10 +25,31 @@
 
     <!-- Mobile Menu dropdown -->
     <div class="mobile-menu" id="mobile-menu">
-        <div style="padding: 0 1.5rem 0.5rem; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9em;">
-            <span id="admin-name-display-mobile">HOD</span>
+        <div class="mobile-menu-header">
+            <span id="admin-name-display-mobile">Admin</span>
+            <span class="material-icons" id="close-menu" style="cursor:pointer;">close</span>
         </div>
-        <a href="#" id="btn-logout-admin-mobile">Logout</a>
+        <div class="mobile-nav-links">
+            <button class="mobile-nav-tab active" data-tab="attendance-view">
+                <span class="material-icons">fact_check</span> Attendance
+            </button>
+            <button class="mobile-nav-tab" data-tab="leaderboard-view">
+                <span class="material-icons">leaderboard</span> Leaderboard
+            </button>
+            <button class="mobile-nav-tab" data-tab="accounts-view" id="mob-tab-accounts">
+                <span class="material-icons">manage_accounts</span> Accounts
+            </button>
+            <button class="mobile-nav-tab" data-tab="queries-view">
+                <span class="material-icons">forum</span> Queries
+            </button>
+            <button class="mobile-nav-tab" data-tab="roles-view" id="mob-tab-roles" style="display: none;">
+                <span class="material-icons">admin_panel_settings</span> Manage Roles
+            </button>
+            <hr style="border:0; border-top: 1px solid rgba(255,255,255,0.1); margin: 1rem 0;">
+            <button id="btn-logout-admin-mobile" class="mobile-nav-tab logout-btn">
+                <span class="material-icons">logout</span> Logout
+            </button>
+        </div>
     </div>
 
     <!-- Admin Login View -->

@@ -95,14 +95,17 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// Hamburger Menu Toggle
 const hamburger = document.getElementById("hamburger-menu");
 const mobileMenu = document.getElementById("mobile-menu");
+const closeMenu = document.getElementById("close-menu");
+
 if (hamburger && mobileMenu) {
-    hamburger.addEventListener("click", () => {
+    const toggleMenu = () => {
         hamburger.classList.toggle("open");
         mobileMenu.classList.toggle("active");
-    });
+    };
+    hamburger.addEventListener("click", toggleMenu);
+    closeMenu?.addEventListener("click", toggleMenu);
 }
 
 // Admin Login Logic
@@ -170,17 +173,23 @@ const showConfirm = (title, msg) => {
     });
 };
 
-document.querySelectorAll(".nav-tab").forEach(tab => {
+const allTabs = document.querySelectorAll(".nav-tab, .mobile-nav-tab");
+allTabs.forEach(tab => {
     tab.addEventListener("click", () => {
         const targetTab = tab.dataset.tab;
-        
-        // Update nav buttons
-        document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
-        tab.classList.add("active");
+        if (!targetTab) return;
+
+        // Sync all tabs with the same data-tab
+        allTabs.forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(`[data-tab="${targetTab}"]`).forEach(t => t.classList.add("active"));
         
         // Update panels
         document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-        document.getElementById(targetTab).classList.add("active");
+        document.getElementById(targetTab)?.classList.add("active");
+
+        // Close mobile menu if open
+        hamburger?.classList.remove("open");
+        mobileMenu?.classList.remove("active");
 
         if (targetTab === "leaderboard-view") {
             loadLeaderboard();
@@ -200,12 +209,19 @@ function initAdminDashboard(user, userData) {
 
   const tabAccounts = document.getElementById("tab-accounts");
   const tabRoles = document.getElementById("tab-roles");
+  const mobTabAccounts = document.getElementById("mob-tab-accounts");
+  const mobTabRoles = document.getElementById("mob-tab-roles");
+
   if (isAdminMaster) {
       tabAccounts?.classList.remove("hidden");
-      tabRoles?.style.setProperty("display", "flex", "important"); // Ensure it shows up
+      tabRoles?.style.setProperty("display", "flex", "important");
+      mobTabAccounts?.style.setProperty("display", "flex", "important");
+      mobTabRoles?.style.setProperty("display", "flex", "important");
   } else {
       tabAccounts?.classList.add("hidden");
       tabRoles?.style.setProperty("display", "none", "important");
+      mobTabAccounts?.style.setProperty("display", "none", "important");
+      mobTabRoles?.style.setProperty("display", "none", "important");
   }
 
   // Set default date to today
@@ -870,13 +886,21 @@ async function loadRoster() {
                 <td class="text-center">
                     ${attendanceHTML}
                 </td>
-                <td class="text-center" style="display:flex; gap:0.5rem; justify-content:center;">
-                    <button class="btn icon-btn btn-reset-pwd" data-email="${student.email}" title="Reset Password">
-                        <span class="material-icons">lock_reset</span>
-                    </button>
-                    <button class="btn icon-btn btn-toggle-suspend" data-uid="${student.uid}" data-status="${student.status}" title="${isSuspended ? "Activate Account" : "Suspend Account"}">
-                        <span class="material-icons" style="color: ${isSuspended ? "var(--success)" : "var(--danger)"}">${isSuspended ? "check_circle" : "block"}</span>
-                    </button>
+                <td class="text-center">
+                    <div class="action-menu-container">
+                        <button class="btn-more" title="More Actions">
+                            <span class="material-icons">more_vert</span>
+                        </button>
+                        <div class="action-dropdown">
+                            <button class="menu-item btn-reset-pwd" data-email="${student.email}">
+                                <span class="material-icons">lock_reset</span> Reset Password
+                            </button>
+                            <button class="menu-item btn-toggle-suspend ${isSuspended ? "success" : "danger"}" data-uid="${student.uid}" data-status="${student.status}">
+                                <span class="material-icons">${isSuspended ? "check_circle" : "block"}</span> 
+                                ${isSuspended ? "Activate Account" : "Suspend Account"}
+                            </button>
+                        </div>
+                    </div>
                 </td>
             `;
       tbody.appendChild(tr);
@@ -890,6 +914,26 @@ async function loadRoster() {
   }
 }
 
+
+// Toggle Actions Dropdown
+document.addEventListener("click", (e) => {
+    const moreBtn = e.target.closest(".btn-more");
+    const allDropdowns = document.querySelectorAll(".action-dropdown");
+    
+    if (moreBtn) {
+        const dropdown = moreBtn.parentElement.querySelector(".action-dropdown");
+        const isOpen = dropdown.classList.contains("active");
+        
+        allDropdowns.forEach(d => d.classList.remove("active"));
+        if (!isOpen) dropdown.classList.add("active");
+        return;
+    }
+    
+    // Close if click outside
+    if (!e.target.closest(".action-menu-container")) {
+        allDropdowns.forEach(d => d.classList.remove("active"));
+    }
+});
 
 // Delegate actions (Reset Password / Suspend)
 document.getElementById("admin-roster-body").addEventListener("click", async (e) => {
