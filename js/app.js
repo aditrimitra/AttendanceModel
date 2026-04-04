@@ -187,11 +187,11 @@ if (hamburger && mobileMenu) {
 // Modal Logic
 const queryModal = document.getElementById("query-modal");
 document
-  .getElementById("btn-open-query")
-  .addEventListener("click", () => queryModal.classList.remove("hidden"));
+  .getElementById("btn-new-query")
+  ?.addEventListener("click", () => queryModal.classList.remove("hidden"));
 document
   .getElementById("btn-close-modal")
-  .addEventListener("click", () => queryModal.classList.add("hidden"));
+  ?.addEventListener("click", () => queryModal.classList.add("hidden"));
 
 // --- STUDENT DASHBOARD ---
 let currentStudent = null;
