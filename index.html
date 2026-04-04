@@ -168,6 +168,12 @@
             <div class="main-panel glass-card mt-6">
                 <div class="panel-header">
                     <h3 class="gradient-text">Semester Leaderboard (<span id="leaderboard-batch-title">...</span>)</h3>
+                    <div class="flex-row" style="gap:0.5rem; flex-wrap: wrap;">
+                        <input type="hidden" id="leaderboard-sem-filter" value="auto"> <!-- hidden, detected from user -->
+                        <select id="leaderboard-subject-filter" class="glass-select" style="min-width: 150px; font-size: 0.8rem;">
+                            <option value="overall">Overall Rank</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="custom-table-wrapper">
                     <table class="glass-table">
@@ -191,6 +197,31 @@
                 </div>
                 <div class="chart-container" style="position: relative; height:350px; width:100%">
                     <canvas id="studentAttendanceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- My Queries & Admin Replies -->
+            <div class="main-panel glass-card mt-6">
+                <div class="panel-header">
+                    <h3 class="gradient-text">My Support Queries</h3>
+                    <button id="btn-new-query" class="btn primary px-4 py-2" style="padding: 0.5rem 1rem;">
+                        <span class="material-icons">add</span> New Query
+                    </button>
+                </div>
+                <div class="custom-table-wrapper mt-4">
+                    <table class="glass-table">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Status</th>
+                                <th>Response</th>
+                                <th style="width: 50px;">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-queries-list-body">
+                            <tr><td colspan="4" class="text-center text-muted">No queries submitted yet.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </main>

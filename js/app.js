@@ -218,6 +218,11 @@ function initStudentDashboard(user, userData) {
   loadStudentAttendance();
   loadStudentLeaderboard();
   loadTodaySchedule();
+  initSupportSystem();
+
+  document
+    .getElementById("leaderboard-subject-filter")
+    .addEventListener("change", loadStudentLeaderboard);
 
   document
     .getElementById("student-month-filter")
@@ -238,6 +243,7 @@ function initStudentDashboard(user, userData) {
       await push(ref(db, "queries"), {
         studentId: currentStudent.uid,
         studentName: currentStudent.name,
+        studentRegd: currentStudent.regdNo,
         subject: title,
         message: msg,
         timestamp: Date.now(),
@@ -397,6 +403,8 @@ function loadStudentAttendance() {
 // Leaderboard Logic
 async function loadStudentLeaderboard() {
     const tbody = document.getElementById("student-leaderboard-body");
+    const subjectFilter = document.getElementById("leaderboard-subject-filter").value;
+
     try {
         const usersSnap = await get(ref(db, "users"));
         const attSnap = await get(ref(db, "attendance"));
@@ -404,6 +412,21 @@ async function loadStudentLeaderboard() {
         if (!usersSnap.exists()) return;
         const users = usersSnap.val();
         const attendance = attSnap.exists() ? attSnap.val() : {};
+
+        // Find available subjects for this batch to populate filter if not done
+        const filterSel = document.getElementById("leaderboard-subject-filter");
+        if (filterSel.options.length === 1) {
+            const batchSubjects = new Set();
+            Object.values(attendance).forEach(date => {
+                Object.keys(date).forEach(subj => batchSubjects.add(subj));
+            });
+            batchSubjects.forEach(subj => {
+                const opt = document.createElement("option");
+                opt.value = subj;
+                opt.textContent = subj;
+                filterSel.appendChild(opt);
+            });
+        }
 
         // Filter for Same Branch AND Same Batch
         const students = Object.keys(users)
@@ -422,11 +445,13 @@ async function loadStudentLeaderboard() {
             let totalAttended = 0;
 
             Object.values(attendance).forEach(subjDates => {
-                Object.values(subjDates).forEach(records => {
+                Object.keys(subjDates).forEach(subject => {
+                    // Filter matching
+                    if (subjectFilter !== "overall" && subject !== subjectFilter) return;
+
+                    const records = subjDates[subject];
                     totalHeld++;
-                    if (records[student.uid] === "present") {
-                        totalAttended++;
-                    }
+                    if (records[student.uid] === "present") totalAttended++;
                 });
             });
 
@@ -449,6 +474,49 @@ async function loadStudentLeaderboard() {
     } catch (e) {
         tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Leaderboard error</td></tr>';
     }
+}
+
+// Support & Notifications Logic
+async function initSupportSystem() {
+    const queriesRef = ref(db, "queries");
+    
+    // Listen for current student's queries
+    onValue(queriesRef, (snapshot) => {
+        const tbody = document.getElementById("student-queries-list-body");
+        if(!tbody || !currentStudent) return;
+        
+        tbody.innerHTML = "";
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            const myQueries = Object.values(data).filter(q => q.studentRegd === currentStudent.regdNo);
+            
+            if (myQueries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No queries submitted yet.</td></tr>';
+                return;
+            }
+
+            myQueries.sort((a,b) => b.timestamp - a.timestamp).forEach(q => {
+                const tr = document.createElement("tr");
+                const isReplied = q.reply ? true : false;
+                tr.innerHTML = `
+                    <td>
+                        <div style="font-weight:600;">${q.subject}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">${q.message}</div>
+                    </td>
+                    <td><span class="badge" style="background: ${isReplied ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)"}; color: ${isReplied ? "var(--success)" : "var(--danger)"}; border-radius: 4px; padding: 2px 8px; font-size: 0.75rem;">${isReplied ? "Replied" : "Pending"}</span></td>
+                    <td>
+                        ${isReplied ? `<b>Admin:</b> ${q.reply}` : '<span style="color:var(--text-muted); font-size: 0.85rem;">Waiting for response...</span>'}
+                    </td>
+                    <td style="font-size: 0.75rem;">${new Date(q.timestamp).toLocaleDateString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    });
+
+    document.getElementById("btn-new-query")?.addEventListener("click", () => {
+        document.getElementById("query-modal").classList.remove("hidden");
+    });
 }
 
 // Today Schedule Logic

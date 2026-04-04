@@ -324,7 +324,7 @@ function initAdminDashboard(user, userData) {
       });
   }
 
-  // Listen for queries (Safety check)
+  // Listen for queries (Enhanced with Reply)
   const queriesRef = ref(db, "queries");
   onValue(queriesRef, (snapshot) => {
     const tbody = document.getElementById("admin-queries-body");
@@ -332,21 +332,67 @@ function initAdminDashboard(user, userData) {
     tbody.innerHTML = "";
     if (snapshot.exists()) {
       const data = snapshot.val();
-      Object.values(data).forEach((q) => {
+      Object.keys(data).forEach((qKey) => {
+        const q = data[qKey];
         const tr = document.createElement("tr");
+        const hasReply = q.reply ? true : false;
         tr.innerHTML = `
-                    <td>${q.studentName || "Unknown"}</td>
-                    <td><b>${q.studentRegd || "N/A"}</b></td>
-                    <td><b>${q.subject}</b></td>
-                    <td>${q.message}</td>
-                    <td>${new Date(q.timestamp).toLocaleString()}</td>
-                `;
+            <td>${q.studentName || "Unknown"}</td>
+            <td><b>${q.studentRegd || "N/A"}</b></td>
+            <td><b>${q.subject}</b></td>
+            <td>
+                <div>${q.message}</div>
+                ${hasReply ? `<div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(147, 51, 234, 0.1); border-left: 2px solid var(--primary); font-size: 0.85rem;">
+                    <b>Admin:</b> ${q.reply}
+                </div>` : ""}
+            </td>
+            <td>${new Date(q.timestamp).toLocaleString()}</td>
+            <td class="text-center">
+                <button class="btn ${hasReply ? "secondary" : "primary"} btn-reply-query" data-id="${qKey}" data-msg="${q.message}" data-student="${q.studentName}">
+                    <span class="material-icons" style="font-size: 1.1rem;">${hasReply ? "edit" : "reply"}</span>
+                </button>
+            </td>
+        `;
         tbody.appendChild(tr);
       });
     } else {
-      tbody.innerHTML =
-        '<tr><td colspan="5" class="text-center">No queries found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center">No queries found.</td></tr>';
     }
+  });
+
+  // Query Reply Modal Logic
+  document.getElementById("admin-queries-body")?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".btn-reply-query");
+      if (btn) {
+          const qId = btn.dataset.id;
+          const qMsg = btn.dataset.msg;
+          const qStudent = btn.dataset.student;
+          
+          document.getElementById("reply-context").innerHTML = `<b>Query from ${qStudent}:</b><br>"${qMsg}"`;
+          document.getElementById("reply-modal").classList.add("active");
+          document.getElementById("btn-submit-reply").dataset.currentId = qId;
+          document.getElementById("reply-message").value = "";
+      }
+  });
+
+  document.getElementById("btn-close-reply")?.addEventListener("click", () => {
+      document.getElementById("reply-modal").classList.remove("active");
+  });
+
+  document.getElementById("btn-submit-reply")?.addEventListener("click", async () => {
+      const qId = document.getElementById("btn-submit-reply").dataset.currentId;
+      const reply = document.getElementById("reply-message").value.trim();
+      
+      if (!reply) return showToast("Please enter a reply", "error");
+      
+      try {
+          await set(ref(db, `queries/${qId}/reply`), reply);
+          await set(ref(db, `queries/${qId}/replyTimestamp`), Date.now());
+          showToast("Reply sent successfully!");
+          document.getElementById("reply-modal").classList.remove("active");
+      } catch (err) {
+          showToast("Failed to send reply", "error");
+      }
   });
   document
     .getElementById("btn-load-students")
@@ -714,12 +760,23 @@ function initTimetableManagement() {
         const day = document.getElementById("tt-day-select").value;
         const subject = document.getElementById("tt-subject-select").value;
         const teacherName = document.getElementById("tt-teacher-input").value.trim();
-        const timeSlot = document.getElementById("tt-time-select").value;
+        const fromTime = document.getElementById("timetable-from").value;
+        const toTime = document.getElementById("timetable-to").value;
 
-        if(!branch || !sem || !subject || !timeSlot || !teacherName) {
+        if(!branch || !sem || !subject || !fromTime || !toTime || !teacherName) {
             showToast("Complete all fields", "error");
             return;
         }
+
+        // Format time to 2pm-3:30pm style
+        const formatTime = (t) => {
+            let [h, m] = t.split(":");
+            h = parseInt(h);
+            const ampm = h >= 12 ? "pm" : "am";
+            h = h % 12 || 12;
+            return `${h}${m === "00" ? "" : ":" + m}${ampm}`;
+        };
+        const timeSlot = `${formatTime(fromTime)} - ${formatTime(toTime)}`;
 
         try {
             // Add unique entry
@@ -745,6 +802,10 @@ function initTimetableManagement() {
 
 async function loadLeaderboard() {
     const tbody = document.getElementById("leaderboard-body");
+    const branchFilter = document.getElementById("leaderboard-branch-filter").value;
+    const semFilter = document.getElementById("leaderboard-sem-filter").value;
+    const subjectFilter = document.getElementById("leaderboard-subject-filter").value;
+
     tbody.innerHTML = '<tr><td colspan="5" class="text-center">Calculating...</td></tr>';
 
     try {
@@ -758,12 +819,17 @@ async function loadLeaderboard() {
         const students = Object.keys(users)
             .filter(studentUid => {
                 const s = users[studentUid];
-                const matchesRole = s.role === "student";
-                // Filter by HOD branch if applicable
+                if (s.role !== "student") return false;
+                
+                // Advanced Filters
+                if (branchFilter !== "all" && s.branch !== branchFilter) return false;
+                if (semFilter !== "all" && s.sem != semFilter) return false;
+
+                // Admin/Master visibility rules
                 if (!isAdminMaster && currentAdminData && currentAdminData.branch) {
-                    return matchesRole && s.branch === currentAdminData.branch;
+                    return s.branch === currentAdminData.branch;
                 }
-                return matchesRole;
+                return true;
             })
             .map(uid => ({
                 uid,
@@ -777,11 +843,16 @@ async function loadLeaderboard() {
             let totalHeld = 0;
             let totalAttended = 0;
 
-            Object.values(attendance).forEach(subjDates => {
-                Object.values(subjDates).forEach(records => {
-                    totalHeld++;
-                    if (records[student.uid] === "present") {
-                        totalAttended++;
+            Object.keys(attendance).forEach(date => {
+                const dailyAtt = attendance[date];
+                Object.keys(dailyAtt).forEach(subject => {
+                    // If subject filter is set, only skip if it doesn't match
+                    if (subjectFilter !== "overall" && subject !== subjectFilter) return;
+
+                    const records = dailyAtt[subject];
+                    if (records[student.uid] !== undefined) {
+                      totalHeld++;
+                      if (records[student.uid] === "present") totalAttended++;
                     }
                 });
             });
@@ -793,21 +864,30 @@ async function loadLeaderboard() {
         leaderboardData.sort((a, b) => b.percentage - a.percentage);
 
         tbody.innerHTML = "";
-        leaderboardData.forEach((student, index) => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td><b>#${index + 1}</b></td>
-                <td>${student.name}</td>
-                <td>${student.regd}</td>
-                <td>${student.branch}</td>
-                <td><span class="stat-value" style="font-size: 1.1rem; color: ${student.percentage >= 75 ? "var(--success)" : "var(--danger)"}">${student.percentage.toFixed(1)}%</span></td>
-            `;
-            tbody.appendChild(tr);
-        });
+        if (leaderboardData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No students found for this selection.</td></tr>';
+        } else {
+            leaderboardData.forEach((student, index) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><b>#${index + 1}</b></td>
+                    <td>${student.name}</td>
+                    <td>${student.regd}</td>
+                    <td>${student.branch}</td>
+                    <td><span class="stat-value" style="font-size: 1.1rem; color: ${student.percentage >= 75 ? "var(--success)" : "var(--danger)"}">${student.percentage.toFixed(1)}%</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
     } catch (e) {
         showToast("Leaderboard error", "error");
     }
 }
+
+// Attach Leaderboard listeners
+["leaderboard-branch-filter", "leaderboard-sem-filter", "leaderboard-subject-filter"].forEach(id => {
+    document.getElementById(id)?.addEventListener("change", loadLeaderboard);
+});
 
 async function loadRoster() {
   const date = document.getElementById("admin-date").value;
