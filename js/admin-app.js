@@ -106,6 +106,14 @@ if (hamburger && mobileMenu) {
     };
     hamburger.addEventListener("click", toggleMenu);
     closeMenu?.addEventListener("click", toggleMenu);
+
+    // Click outside to close (Admin)
+    document.addEventListener("click", (e) => {
+        if (!mobileMenu.contains(e.target) && !hamburger.contains(e.target) && mobileMenu.classList.contains("active")) {
+            hamburger.classList.remove("open");
+            mobileMenu.classList.remove("active");
+        }
+    });
 }
 
 // Admin Login Logic
@@ -195,6 +203,12 @@ allTabs.forEach(tab => {
             loadLeaderboard();
         }
     });
+});
+// Admin Global Notification Bell Click
+document.getElementById("admin-global-notif")?.addEventListener("click", () => {
+     // Trigger click on Queries tab button
+     const queriesTabStr = 'queries-view';
+     document.querySelectorAll(`[data-tab="${queriesTabStr}"]`).forEach(t => t.click());
 });
 
 // --- ADMIN DASHBOARD ---
@@ -324,16 +338,35 @@ function initAdminDashboard(user, userData) {
       });
   }
 
-  // Listen for queries (Enhanced with Reply)
+  // Listen for queries (Enhanced with Reply, Sorting & Notifications)
   const queriesRef = ref(db, "queries");
   onValue(queriesRef, (snapshot) => {
     const tbody = document.getElementById("admin-queries-body");
+    const tabDot = document.getElementById("admin-query-notif-dot");
+    const globalBadge = document.getElementById("admin-notif-badge");
     if(!tbody) return;
     tbody.innerHTML = "";
     if (snapshot.exists()) {
       const data = snapshot.val();
-      Object.keys(data).forEach((qKey) => {
-        const q = data[qKey];
+      const queryEntries = Object.keys(data).map(k => ({id: k, ...data[k]}));
+      
+      const unreplied = queryEntries.filter(q => !q.reply);
+      const hasUnreplied = unreplied.length > 0;
+      
+      // Update Tab Dot
+      hasUnreplied ? tabDot?.classList.remove("hidden") : tabDot?.classList.add("hidden");
+      
+      // Update Global Badge
+      if (hasUnreplied) {
+          if (globalBadge) {
+              globalBadge.textContent = unreplied.length > 9 ? "+9" : unreplied.length;
+              globalBadge.classList.remove("hidden");
+          }
+      } else {
+          globalBadge?.classList.add("hidden");
+      }
+
+      queryEntries.sort((a,b) => b.timestamp - a.timestamp).forEach((q) => {
         const tr = document.createElement("tr");
         const hasReply = q.reply ? true : false;
         tr.innerHTML = `
@@ -348,20 +381,29 @@ function initAdminDashboard(user, userData) {
             </td>
             <td>${new Date(q.timestamp).toLocaleString()}</td>
             <td class="text-center">
-                <button class="btn ${hasReply ? "secondary" : "primary"} btn-reply-query" data-id="${qKey}" data-msg="${q.message}" data-student="${q.studentName}">
-                    <span class="material-icons" style="font-size: 1.1rem;">${hasReply ? "edit" : "reply"}</span>
-                </button>
+                <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                    <button class="btn ${hasReply ? "secondary" : "primary"} btn-reply-query" style="padding: 0.4rem;" data-id="${q.id}" data-msg="${q.message}" data-student="${q.studentName}">
+                        <span class="material-icons" style="font-size: 1.1rem;">${hasReply ? "edit" : "reply"}</span>
+                    </button>
+                    ${hasReply ? `
+                    <button class="btn secondary btn-resolve-query" style="padding: 0.4rem; border-color: var(--danger); color: var(--danger);" title="Clear resolved query" data-id="${q.id}">
+                        <span class="material-icons" style="font-size: 1.1rem;">delete_outline</span>
+                    </button>
+                    ` : ''}
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
       });
     } else {
       tbody.innerHTML = '<tr><td colspan="6" class="text-center">No queries found.</td></tr>';
+      tabDot?.classList.add("hidden");
+      globalBadge?.classList.add("hidden");
     }
   });
 
-  // Query Reply Modal Logic
-  document.getElementById("admin-queries-body")?.addEventListener("click", (e) => {
+  // Query Reply & Resolve Logic
+  document.getElementById("admin-queries-body")?.addEventListener("click", async (e) => {
       const btn = e.target.closest(".btn-reply-query");
       if (btn) {
           const qId = btn.dataset.id;
@@ -372,26 +414,57 @@ function initAdminDashboard(user, userData) {
           document.getElementById("reply-modal").classList.add("active");
           document.getElementById("btn-submit-reply").dataset.currentId = qId;
           document.getElementById("reply-message").value = "";
+          return;
+      }
+
+      const resolveBtn = e.target.closest(".btn-resolve-query");
+      if (resolveBtn) {
+          const qId = resolveBtn.dataset.id;
+          if (await showConfirm("Clear Query", "Are you sure you want to clear this resolved query?")) {
+              try {
+                  await set(ref(db, `queries/${qId}`), null);
+                  showToast("Query cleared.");
+              } catch (err) {
+                  showToast("Failed to clear: " + err.message, "error");
+              }
+          }
+      }
+  });
+
+  // Query Reply Templates
+  const replyModal = document.getElementById("reply-modal");
+  replyModal?.addEventListener("click", (e) => {
+      const templateBtn = e.target.closest(".btn-template");
+      if (templateBtn) {
+          const textarea = document.getElementById("reply-message");
+          if (textarea) textarea.value = templateBtn.dataset.text;
       }
   });
 
   document.getElementById("btn-close-reply")?.addEventListener("click", () => {
-      document.getElementById("reply-modal").classList.remove("active");
+      replyModal.classList.remove("active");
   });
 
   document.getElementById("btn-submit-reply")?.addEventListener("click", async () => {
-      const qId = document.getElementById("btn-submit-reply").dataset.currentId;
+      const submitBtn = document.getElementById("btn-submit-reply");
+      const qId = submitBtn.dataset.currentId;
       const reply = document.getElementById("reply-message").value.trim();
       
       if (!reply) return showToast("Please enter a reply", "error");
+      
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = "Sending...";
       
       try {
           await set(ref(db, `queries/${qId}/reply`), reply);
           await set(ref(db, `queries/${qId}/replyTimestamp`), Date.now());
           showToast("Reply sent successfully!");
-          document.getElementById("reply-modal").classList.remove("active");
+          replyModal.classList.remove("active");
       } catch (err) {
-          showToast("Failed to send reply", "error");
+          showToast("Failed: " + err.message, "error");
+      } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-icons">send</span> Send Response';
       }
   });
   document

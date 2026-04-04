@@ -104,10 +104,13 @@ h6 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem 2rem;
-    position: relative;
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
     z-index: 1000;
-    background: transparent;
+    background: rgba(10, 10, 10, 0.5);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .brand-logo {
@@ -125,11 +128,14 @@ h6 {
     font-size: 1.6rem;
 }
 
-/* Desktop Navigation */
-.nav-links {
+/* Desktop Navigation in Navbar (centered) */
+.admin-nav {
     display: flex;
-    gap: 2rem;
-    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.4rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .nav-links a {
@@ -141,6 +147,25 @@ h6 {
 
 .nav-links a:hover {
     color: var(--primary);
+}
+
+.logout-hover:hover {
+    background: var(--danger) !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.nav-center-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+}
+
+@media (max-width: 1024px) {
+    .nav-center-container {
+        display: none;
+    }
 }
 
 /* Hamburger Icon */
@@ -657,6 +682,12 @@ textarea {
     background: rgba(255, 255, 255, 0.2);
 }
 
+.logout-hover:hover {
+    background: var(--danger) !important;
+    color: white !important;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
 .success {
     background: var(--success);
     color: white;
@@ -927,20 +958,7 @@ textarea {
     padding-top: 1.5rem;
 }
 
-/* Modal */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    backdrop-filter: blur(5px);
-}
+/* Consolidated Modal styles are below at Premium Section */
 
 .modal-card {
     padding: 2rem;
@@ -960,6 +978,27 @@ textarea {
 }
 
 /* Utilities */
+.icon-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+    aspect-ratio: 1/1;
+    padding: 0;
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.05);
+}
+
 .hidden {
     display: none !important;
 }

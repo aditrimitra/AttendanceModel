@@ -181,17 +181,61 @@ if (hamburger && mobileMenu) {
             hamburger.classList.remove("open");
             mobileMenu.classList.remove("active");
         });
+
+        // Click outside to close (Student)
+        document.addEventListener("click", (e) => {
+            if (!mobileMenu.contains(e.target) && !hamburger.contains(e.target) && mobileMenu.classList.contains("active")) {
+                hamburger.classList.remove("open");
+                mobileMenu.classList.remove("active");
+            }
+        });
+
+        // Student Nav Tab Logic (Desktop & Mobile)
+        const allStudentTabs = document.querySelectorAll(".student-tab-btn, .student-nav-btn");
+        allStudentTabs.forEach(tab => {
+            tab.addEventListener("click", () => {
+                const targetTab = tab.dataset.tab;
+                if (!targetTab) return;
+
+                // Update active button state
+                allStudentTabs.forEach(t => t.classList.remove("active"));
+                document.querySelectorAll(`[data-tab="${targetTab}"]`).forEach(t => t.classList.add("active"));
+                
+                // Show corresponding panel
+                document.querySelectorAll("#student-view .tab-panel").forEach(p => p.classList.remove("active"));
+                document.getElementById(targetTab)?.classList.add("active");
+
+                // Close mobile menu if open
+                if (hamburger) hamburger.classList.remove("open");
+                if (mobileMenu) mobileMenu.classList.remove("active");
+            });
+        });
     }
 }
 
+// Student Global Notification Bell Click
+document.getElementById("btn-show-notifications")?.addEventListener("click", () => {
+     // Trigger click on Queries tab button
+     const queriesTabStr = 'student-queries-view';
+     document.querySelectorAll(`[data-tab="${queriesTabStr}"]`).forEach(t => t.click());
+});
+
 // Modal Logic
 const queryModal = document.getElementById("query-modal");
+const openQueryBtns = ["btn-new-query", "btn-open-query"];
+openQueryBtns.forEach(id => {
+  document.getElementById(id)?.addEventListener("click", () => queryModal.classList.add("active"));
+});
+
+// Close buttons for different modals
+const closeQueryModal = document.getElementById("btn-close-query-modal");
+closeQueryModal?.addEventListener("click", () => queryModal.classList.remove("active"));
+
 document
-  .getElementById("btn-new-query")
-  ?.addEventListener("click", () => queryModal.classList.remove("hidden"));
-document
-  .getElementById("btn-close-modal")
-  ?.addEventListener("click", () => queryModal.classList.add("hidden"));
+  .getElementById("btn-close-modal") // Generic close button fallback
+  ?.addEventListener("click", () => {
+      document.querySelectorAll(".modal-overlay").forEach(m => m.classList.remove("active"));
+  });
 
 // --- STUDENT DASHBOARD ---
 let currentStudent = null;
@@ -217,7 +261,7 @@ function initStudentDashboard(user, userData) {
   // Load Dashboards
   loadStudentAttendance();
   loadStudentLeaderboard();
-  loadTodaySchedule();
+  loadStudentSchedule();
   initSupportSystem();
 
   document
@@ -228,33 +272,43 @@ function initStudentDashboard(user, userData) {
     .getElementById("student-month-filter")
     .addEventListener("change", loadStudentAttendance);
 
+  document
+    .getElementById("student-schedule-day-filter")
+    .addEventListener("change", loadStudentSchedule);
+
   // Setup Query Form
   const queryForm = document.getElementById("query-form");
-  // Remove old listeners to prevent duplication on re-init
-  const newForm = queryForm.cloneNode(true);
-  queryForm.parentNode.replaceChild(newForm, queryForm);
+  if (queryForm) {
+    queryForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("query-title").value;
+      const msg = document.getElementById("query-msg").value;
 
-  newForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const title = document.getElementById("query-title").value;
-    const msg = document.getElementById("query-msg").value;
-
-    try {
-      await push(ref(db, "queries"), {
-        studentId: currentStudent.uid,
-        studentName: currentStudent.name,
-        studentRegd: currentStudent.regdNo,
-        subject: title,
-        message: msg,
-        timestamp: Date.now(),
-      });
-      showToast("Query sent. The university will get back to you via email.");
-      document.getElementById("query-modal").classList.add("hidden");
-      newForm.reset();
-    } catch (error) {
-      showToast("Failed to send query", "error");
-    }
-  });
+      const submitBtn = queryForm.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="material-icons spinning">hourglass_empty</span> Sending...';
+      
+      try {
+        await push(ref(db, "queries"), {
+          studentId: currentStudent.uid,
+          studentName: currentStudent.name,
+          studentRegd: currentStudent.regdNo,
+          subject: title,
+          message: msg,
+          timestamp: Date.now(),
+          status: "unread" // for notif tracking
+        });
+        showToast("Query sent successfully!");
+        queryModal.classList.remove("active");
+        queryForm.reset();
+      } catch (error) {
+        showToast("Failed to send query: " + error.message, "error");
+      } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-icons">send</span> Submit Query';
+      }
+    };
+  }
 }
 
 let studentAttendanceUnsubscribe = null;
@@ -407,7 +461,7 @@ async function loadStudentLeaderboard() {
 
     try {
         const usersSnap = await get(ref(db, "users"));
-        const attSnap = await get(ref(db, "attendance"));
+        const attSnap = await get(ref(db, `attendance/${currentStudent.branch}/${currentSem}`));
         
         if (!usersSnap.exists()) return;
         const users = usersSnap.val();
@@ -417,8 +471,8 @@ async function loadStudentLeaderboard() {
         const filterSel = document.getElementById("leaderboard-subject-filter");
         if (filterSel.options.length === 1) {
             const batchSubjects = new Set();
-            Object.values(attendance).forEach(date => {
-                Object.keys(date).forEach(subj => batchSubjects.add(subj));
+            Object.values(attendance).forEach(dateData => {
+                Object.keys(dateData).forEach(subj => batchSubjects.add(subj));
             });
             batchSubjects.forEach(subj => {
                 const opt = document.createElement("option");
@@ -428,12 +482,12 @@ async function loadStudentLeaderboard() {
             });
         }
 
-        // Filter for Same Branch AND Same Batch
+        // Filter for Same Branch AND Semester
         const students = Object.keys(users)
             .filter(uid => 
                 users[uid].role === "student" && 
                 users[uid].branch === currentStudent.branch && 
-                users[uid].batch === currentStudent.batch
+                users[uid].sem == currentSem
             )
             .map(uid => ({
                 uid,
@@ -444,14 +498,16 @@ async function loadStudentLeaderboard() {
             let totalHeld = 0;
             let totalAttended = 0;
 
-            Object.values(attendance).forEach(subjDates => {
-                Object.keys(subjDates).forEach(subject => {
+            Object.values(attendance).forEach(dateData => {
+                Object.keys(dateData).forEach(subject => {
                     // Filter matching
                     if (subjectFilter !== "overall" && subject !== subjectFilter) return;
 
-                    const records = subjDates[subject];
-                    totalHeld++;
-                    if (records[student.uid] === "present") totalAttended++;
+                    const records = dateData[subject];
+                    if (records[student.uid] !== undefined) {
+                      totalHeld++;
+                      if (records[student.uid] === "present") totalAttended++;
+                    }
                 });
             });
 
@@ -480,24 +536,36 @@ async function loadStudentLeaderboard() {
 async function initSupportSystem() {
     const queriesRef = ref(db, "queries");
     
-    // Listen for current student's queries
+    // Listen for current student's queries (With Notification Counting)
     onValue(queriesRef, (snapshot) => {
         const tbody = document.getElementById("student-queries-list-body");
+        const notifBadge = document.getElementById("notif-badge");
         if(!tbody || !currentStudent) return;
         
         tbody.innerHTML = "";
+        let newReplyCount = 0;
+
         if (snapshot.exists()) {
             const data = snapshot.val();
-            const myQueries = Object.values(data).filter(q => q.studentRegd === currentStudent.regdNo);
+            const myQueries = Object.keys(data)
+                .map(k => ({id: k, ...data[k]}))
+                .filter(q => q.studentRegd === currentStudent.regdNo);
             
             if (myQueries.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No queries submitted yet.</td></tr>';
+                notifBadge?.classList.add("hidden");
                 return;
             }
 
             myQueries.sort((a,b) => b.timestamp - a.timestamp).forEach(q => {
                 const tr = document.createElement("tr");
                 const isReplied = q.reply ? true : false;
+                
+                // If it's a reply and student hasn't 'marked as read' (placeholder logic)
+                if (isReplied && !q.readByStudent) {
+                    newReplyCount++;
+                }
+
                 tr.innerHTML = `
                     <td>
                         <div style="font-weight:600;">${q.subject}</div>
@@ -508,29 +576,92 @@ async function initSupportSystem() {
                         ${isReplied ? `<b>Admin:</b> ${q.reply}` : '<span style="color:var(--text-muted); font-size: 0.85rem;">Waiting for response...</span>'}
                     </td>
                     <td style="font-size: 0.75rem;">${new Date(q.timestamp).toLocaleDateString()}</td>
+                    <td class="text-center">
+                        <div class="action-menu-container">
+                            <button class="btn-more" title="More Actions">
+                                <span class="material-icons">more_vert</span>
+                            </button>
+                            <div class="action-dropdown">
+                                ${isReplied ? `
+                                <button class="menu-item btn-student-reply-query" data-id="${q.id}" data-subject="${q.subject}">
+                                    <span class="material-icons">reply</span> Follow Up
+                                </button>
+                                ` : ''}
+                                <button class="menu-item btn-student-delete-query danger" data-id="${q.id}">
+                                    <span class="material-icons">delete</span> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
+
+            // Update Badge
+            if (newReplyCount > 0) {
+                if(notifBadge) {
+                   notifBadge.textContent = newReplyCount > 9 ? "+9" : `+${newReplyCount}`;
+                   notifBadge.classList.remove("hidden");
+                }
+            } else {
+                notifBadge?.classList.add("hidden");
+            }
         }
     });
 
-    document.getElementById("btn-new-query")?.addEventListener("click", () => {
-        document.getElementById("query-modal").classList.remove("hidden");
+    // Clear notifications on click (And Navigate to Queries)
+    document.getElementById("btn-show-notifications")?.addEventListener("click", () => {
+        const notifBadge = document.getElementById("notif-badge");
+        if(notifBadge) notifBadge.classList.add("hidden");
+        // No longer scrolling, since we are in tabs. Ensure query tab is active
+        document.querySelector('[data-tab="student-queries-view"]')?.click();
+    });
+
+    // Event Delegation for Student Query Actions
+    document.getElementById("student-queries-list-body")?.addEventListener("click", async (e) => {
+        const deleteBtn = e.target.closest(".btn-student-delete-query");
+        if (deleteBtn) {
+            const qId = deleteBtn.dataset.id;
+            if (await showConfirm("Delete Query", "Are you sure you want to delete this query?")) {
+                try {
+                    await set(ref(db, `queries/${qId}`), null);
+                    showToast("Query deleted successfully.");
+                } catch (err) {
+                    showToast("Failed to delete: " + err.message, "error");
+                }
+            }
+            return;
+        }
+
+        const replyBtn = e.target.closest(".btn-student-reply-query");
+        if (replyBtn) {
+            const subject = replyBtn.dataset.subject;
+            document.getElementById("query-title").value = "Re: " + subject;
+            document.getElementById("query-modal").classList.add("active");
+            document.getElementById("query-msg").focus();
+            return; // dropdown will be closed by global click handler
+        }
     });
 }
 
-// Today Schedule Logic
-async function loadTodaySchedule() {
+// Schedule Logic
+async function loadStudentSchedule() {
     const tbody = document.getElementById("student-today-body");
-    const dateDisplay = document.getElementById("today-date-display");
+    const dayFilterEl = document.getElementById("student-schedule-day-filter");
     
-    const today = new Date();
-    const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
-    const dateString = today.toISOString().split('T')[0];
-    dateDisplay.textContent = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    // Automatically set filter to today if it's the first load
+    if (!dayFilterEl.dataset.initialized) {
+        const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        // Set if it's Monday-Saturday
+        if(dayFilterEl.querySelector(`option[value="${todayName}"]`)) {
+             dayFilterEl.value = todayName;
+        }
+        dayFilterEl.dataset.initialized = "true";
+    }
 
+    const dayName = dayFilterEl.value;
+    
     try {
-        // 1. Fetch Timetable for this student's Branch/Sem/Day
         const branch = currentStudent.branch;
         const sem = currentStudent.sem;
         
@@ -542,14 +673,17 @@ async function loadTodaySchedule() {
         const ttSnap = await get(ref(db, `timetable/${branch}/${sem}/${dayName}`));
         const ttEntries = ttSnap.exists() ? Object.values(ttSnap.val()) : [];
 
-        // 2. Fetch existing attendance for today
-        const attSnap = await get(ref(db, `attendance/${dateString}`));
-        const attendanceToday = attSnap.exists() ? attSnap.val() : {};
+        // Update Today's Classes Count for Analytics Tab if the filter day matches actual today
+        const actualToday = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        if (dayName === actualToday) {
+             const countEl = document.getElementById("today-classes-count");
+             if (countEl) countEl.textContent = ttEntries.length;
+        }
         
         tbody.innerHTML = "";
         
         if (ttEntries.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No classes scheduled for today.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No classes scheduled for this day.</td></tr>';
             return;
         }
 
@@ -558,29 +692,18 @@ async function loadTodaySchedule() {
             const time = entry.timeSlot || "N/A";
             const teacher = entry.teacherName || "N/A";
             const tr = document.createElement("tr");
-            let statusBadge = '<span class="text-muted">Not Recorded</span>';
-            
-            if (attendanceToday[subj] && attendanceToday[subj][currentStudent.uid]) {
-                const status = attendanceToday[subj][currentStudent.uid];
-                if (status === 'present') {
-                    statusBadge = '<span style="color:var(--success); font-weight:600;">Present <span class="material-icons" style="font-size:1rem; vertical-align:middle;">check_circle</span></span>';
-                } else {
-                    statusBadge = '<span style="color:var(--danger); font-weight:600;">Absent <span class="material-icons" style="font-size:1rem; vertical-align:middle;">cancel</span></span>';
-                }
-            }
 
             tr.innerHTML = `
                 <td>${time}</td>
                 <td><b>${subj}</b></td>
                 <td style="color:var(--primary); font-weight:500;">${teacher}</td>
-                <td>${statusBadge}</td>
             `;
             tbody.appendChild(tr);
         });
 
     } catch (e) {
         console.error(e);
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Failed to load schedule.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Failed to load schedule.</td></tr>';
     }
 }
 

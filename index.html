@@ -54,17 +54,45 @@
 
     <!-- Student Navigation Overlay -->
     <nav class="navbar hidden" id="student-nav">
-        <a href="#" class="brand-logo">
-            <span class="material-icons">hub</span> AttendEase
-        </a>
-        <div class="nav-links">
-            <span id="student-name-display-desktop" style="font-weight:600; margin-right: 1rem;">Student</span>
-            <span id="student-sem-display-desktop" class="badge" style="background: rgba(147, 51, 234, 0.2); color: var(--primary); padding: 0.2rem 0.8rem; border-radius: 20px; font-weight: 600; font-size: 0.9em; margin-right: 1rem;">Sem 1</span>
-            <button id="btn-logout-student-desktop" class="btn secondary px-4 py-2" style="padding: 0.5rem 1rem;">Logout</button>
+        
+        <!-- Left Side: Logo + Name + Sem -->
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <a href="#" class="brand-logo">
+                <span class="material-icons">hub</span> AttendEase
+            </a>
+            <div class="hide-mobile" style="display: flex; align-items: center; gap: 0.8rem;">
+                <span id="student-name-display-desktop" style="font-weight:600; font-size: 0.95rem;">Student</span>
+                <span id="student-sem-display-desktop" class="badge" style="background: rgba(147, 51, 234, 0.2); color: var(--primary); padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 600; font-size: 0.8em;">Sem 1</span>
+            </div>
         </div>
-        <button class="hamburger" id="hamburger-menu-student">
-            <span></span><span></span><span></span>
-        </button>
+
+        <!-- Center: Navigation Tabs (Desktop only) -->
+        <div class="nav-center-container">
+            <div class="admin-nav">
+                <button class="nav-tab active student-tab-btn" data-tab="student-analytics-view"><span class="material-icons">analytics</span> Analytics</button>
+                <button class="nav-tab student-tab-btn" data-tab="student-records-view"><span class="material-icons">history</span> Records</button>
+                <button class="nav-tab student-tab-btn" data-tab="student-schedule-view"><span class="material-icons">event</span> Schedule</button>
+                <button class="nav-tab student-tab-btn" data-tab="student-leaderboard-view"><span class="material-icons">leaderboard</span> Leaderboard</button>
+                <button class="nav-tab student-tab-btn" data-tab="student-queries-view"><span class="material-icons">contact_support</span> Queries</button>
+            </div>
+        </div>
+
+        <!-- Right Side: Notification + Logout + Hamburger -->
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <!-- Notification Icon -->
+            <div class="notification-nav-item" id="btn-show-notifications" style="position: relative; cursor:pointer; display: flex; align-items:center; width: 38px; height: 38px; justify-content: center; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                <span class="material-icons" style="font-size: 1.3rem; color: var(--text);">notifications</span>
+                <span id="notif-badge" class="badge hidden" style="position: absolute; top: -2px; right: -2px; background: var(--danger); border-radius: 50%; min-width: 16px; height: 16px; padding:0; display:flex; align-items:center; justify-content:center; font-size: 0.6rem; color: white; border: 1.5px solid #000;">0</span>
+            </div>
+
+            <!-- Desktop Logout -->
+            <button id="btn-logout-student-desktop" class="btn secondary hide-mobile logout-hover" style="padding: 0.4rem 1rem; font-size: 0.9rem;">Logout</button>
+
+            <!-- Mobile Hamburger -->
+            <button class="hamburger" id="hamburger-menu-student">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
     </nav>
 
     <!-- Mobile Menu dropdown -->
@@ -77,6 +105,21 @@
             <span class="material-icons" id="close-menu-student" style="cursor:pointer;">close</span>
         </div>
         <div class="mobile-nav-links">
+            <button class="mobile-nav-tab student-nav-btn active" data-tab="student-analytics-view">
+                <span class="material-icons">analytics</span> Analytics
+            </button>
+            <button class="mobile-nav-tab student-nav-btn" data-tab="student-records-view">
+                <span class="material-icons">history</span> Records
+            </button>
+            <button class="mobile-nav-tab student-nav-btn" data-tab="student-schedule-view">
+                <span class="material-icons">event</span> Schedule
+            </button>
+            <button class="mobile-nav-tab student-nav-btn" data-tab="student-leaderboard-view">
+                <span class="material-icons">leaderboard</span> Leaderboard
+            </button>
+            <button class="mobile-nav-tab student-nav-btn" data-tab="student-queries-view">
+                <span class="material-icons">contact_support</span> My Queries
+            </button>
             <hr style="border:0; border-top: 1px solid rgba(255,255,255,0.1); margin: 1rem 0;">
             <button id="btn-logout-student-mobile" class="mobile-nav-tab logout-btn">
                 <span class="material-icons">logout</span> Logout
@@ -85,31 +128,53 @@
     </div>
 
     <!-- Student Dashboard -->
-    <div id="student-view" class="view-container dashboard-layout" style="padding-top: 1rem;">
+    <div id="student-view" class="view-container dashboard-layout">
 
         <main class="dashboard-content">
-            <div class="top-cards">
-                <div class="glass-card stat-card glow-border">
-                    <div class="stat-info">
-                        <h3>Monthly Attendance</h3>
-                        <p class="stat-value" id="student-month-percentage">0%</p>
-                        <p class="stat-subtitle" id="student-month-label">Current Month</p>
+            <!-- TAB: Analytics -->
+            <div id="student-analytics-view" class="tab-panel active">
+                <div class="top-cards">
+                    <div class="glass-card stat-card glow-border">
+                        <div class="stat-info">
+                            <h3>Monthly Attendance</h3>
+                            <p class="stat-value" id="student-month-percentage">0%</p>
+                            <p class="stat-subtitle" id="student-month-label">Current Month</p>
+                        </div>
+                        <div class="stat-icon">
+                            <span class="material-icons">trending_up</span>
+                        </div>
                     </div>
-                    <div class="stat-icon">
-                        <span class="material-icons">trending_up</span>
+                    <div class="glass-card stat-card glow-border" style="cursor: pointer;" onclick="document.querySelector('[data-tab=\'student-schedule-view\']').click();">
+                        <div class="stat-info">
+                            <h3>Today's Classes</h3>
+                            <p class="stat-value" id="today-classes-count">0</p>
+                            <p class="stat-subtitle">Tap to view schedule</p>
+                        </div>
+                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2); color: var(--success);">
+                            <span class="material-icons">event_note</span>
+                        </div>
+                    </div>
+                    <div class="glass-card action-card">
+                        <h3>University Portal</h3>
+                        <p>Have issues with attendance or classes?</p>
+                        <button id="btn-open-query" class="btn secondary">
+                            <span class="material-icons">mail</span> Send Query to Uni
+                        </button>
                     </div>
                 </div>
-                <div class="glass-card action-card">
-                    <h3>University Portal</h3>
-                    <p>Have issues with attendance or classes?</p>
-                    <button id="btn-open-query" class="btn secondary">
-                        <span class="material-icons">mail</span> Send Query to Uni
-                    </button>
+
+                <div class="main-panel glass-card mt-6">
+                    <div class="panel-header">
+                        <h3 class="gradient-text">Attendance Analytics</h3>
+                    </div>
+                    <div class="chart-container" style="position: relative; height:350px; width:100%">
+                        <canvas id="studentAttendanceChart"></canvas>
+                    </div>
                 </div>
             </div>
 
-            <div class="grid-2 mt-6">
-                <!-- Records -->
+            <!-- TAB: Records -->
+            <div id="student-records-view" class="tab-panel">
                 <div class="main-panel glass-card">
                     <div class="panel-header">
                         <h3 class="gradient-text">My Attendance Records</h3>
@@ -138,12 +203,21 @@
                         </table>
                     </div>
                 </div>
+            </div>
 
-                <!-- Timetable / Today's Schedule -->
+            <!-- TAB: Schedule -->
+            <div id="student-schedule-view" class="tab-panel">
                 <div class="main-panel glass-card">
                     <div class="panel-header">
-                        <h3 class="gradient-text">Today's Schedule</h3>
-                        <span style="color: var(--text-muted); font-size: 0.9rem;" id="today-date-display">Loading...</span>
+                        <h3 class="gradient-text">Weekly Schedule</h3>
+                        <select id="student-schedule-day-filter" class="glass-select" style="max-width: 150px;">
+                            <option value="Monday">Monday</option>
+                            <option value="Tuesday">Tuesday</option>
+                            <option value="Wednesday">Wednesday</option>
+                            <option value="Thursday">Thursday</option>
+                            <option value="Friday">Friday</option>
+                            <option value="Saturday">Saturday</option>
+                        </select>
                     </div>
                     
                     <div class="custom-table-wrapper">
@@ -153,86 +227,82 @@
                                     <th>Time</th>
                                     <th>Subject</th>
                                     <th>Teacher</th>
-                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody id="student-today-body">
-                                <tr><td colspan="4" class="text-center text-muted">Loading schedule...</td></tr>
+                                <tr><td colspan="3" class="text-center text-muted">Loading schedule...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Semester Leaderboard -->
-            <div class="main-panel glass-card mt-6">
-                <div class="panel-header">
-                    <h3 class="gradient-text">Semester Leaderboard (<span id="leaderboard-batch-title">...</span>)</h3>
-                    <div class="flex-row" style="gap:0.5rem; flex-wrap: wrap;">
-                        <input type="hidden" id="leaderboard-sem-filter" value="auto"> <!-- hidden, detected from user -->
-                        <select id="leaderboard-subject-filter" class="glass-select" style="min-width: 150px; font-size: 0.8rem;">
-                            <option value="overall">Overall Rank</option>
-                        </select>
+            <!-- TAB: Leaderboard -->
+            <div id="student-leaderboard-view" class="tab-panel">
+                <div class="main-panel glass-card">
+                    <div class="panel-header">
+                        <h3 class="gradient-text">Semester Leaderboard (<span id="leaderboard-batch-title">...</span>)</h3>
+                        <div class="flex-row" style="gap:0.5rem; flex-wrap: wrap;">
+                            <input type="hidden" id="leaderboard-sem-filter" value="auto"> <!-- hidden, detected from user -->
+                            <select id="leaderboard-subject-filter" class="glass-select" style="min-width: 150px; font-size: 0.8rem;">
+                                <option value="overall">Overall Rank</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="custom-table-wrapper">
+                        <table class="glass-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Student</th>
+                                    <th>Attendance %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-leaderboard-body">
+                                <tr><td colspan="3" class="text-center">Calculating leaderboard...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="custom-table-wrapper">
-                    <table class="glass-table">
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Student</th>
-                                <th>Attendance %</th>
-                            </tr>
-                        </thead>
-                        <tbody id="student-leaderboard-body">
-                            <tr><td colspan="3" class="text-center">Calculating leaderboard...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
 
-            <div class="main-panel glass-card mt-6">
-                <div class="panel-header">
-                    <h3 class="gradient-text">Attendance Analytics</h3>
-                </div>
-                <div class="chart-container" style="position: relative; height:350px; width:100%">
-                    <canvas id="studentAttendanceChart"></canvas>
-                </div>
-            </div>
-
-            <!-- My Queries & Admin Replies -->
-            <div class="main-panel glass-card mt-6">
-                <div class="panel-header">
-                    <h3 class="gradient-text">My Support Queries</h3>
-                    <button id="btn-new-query" class="btn primary px-4 py-2" style="padding: 0.5rem 1rem;">
-                        <span class="material-icons">add</span> New Query
-                    </button>
-                </div>
-                <div class="custom-table-wrapper mt-4">
-                    <table class="glass-table">
-                        <thead>
-                            <tr>
-                                <th>Subject</th>
-                                <th>Status</th>
-                                <th>Response</th>
-                                <th style="width: 50px;">Date</th>
-                            </tr>
-                        </thead>
-                        <tbody id="student-queries-list-body">
-                            <tr><td colspan="4" class="text-center text-muted">No queries submitted yet.</td></tr>
-                        </tbody>
-                    </table>
+            <!-- TAB: Queries -->
+            <div id="student-queries-view" class="tab-panel">
+                <div class="main-panel glass-card">
+                    <div class="panel-header">
+                        <h3 class="gradient-text">My Support Queries</h3>
+                        <button id="btn-new-query" class="btn primary px-4 py-2" style="padding: 0.5rem 1rem;">
+                            <span class="material-icons">add</span> New Query
+                        </button>
+                    </div>
+                    <div class="custom-table-wrapper mt-4">
+                        <table class="glass-table">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Status</th>
+                                    <th>Response</th>
+                                    <th style="width: 50px;">Date</th>
+                                    <th class="text-center" style="width: 60px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-queries-list-body">
+                                <tr><td colspan="4" class="text-center text-muted">No queries submitted yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Query Modal -->
-    <div id="query-modal" class="modal-overlay hidden">
+    <div id="query-modal" class="modal-overlay">
         <div class="glass-panel modal-card">
-            <div class="modal-header">
-                <h2>Contact University</h2>
-                <button id="btn-close-modal" class="btn icon-btn"><span class="material-icons">close</span></button>
+            <div class="panel-header" style="justify-content: space-between;">
+                <h2 class="gradient-text">Contact University</h2>
+                <button type="button" class="btn icon-btn" id="btn-close-query-modal">
+                    <span class="material-icons">close</span>
+                </button>
             </div>
             <p class="modal-subtitle">Submit your query regarding attendance or academics below.</p>
             <form id="query-form" class="mt-4">
