@@ -6,6 +6,7 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "site": "attendease1",
     "cleanUrls": true
   }
 }

@@ -1,7 +1,6 @@
 # Firebase cache & logs
 .firebase/
 firebase-debug.log*
-.firebaserc
 
 # OS generated files
 .DS_Store
