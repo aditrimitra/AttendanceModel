@@ -9,80 +9,6 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-    <!-- Admin Navigation Overlay -->
-    <nav class="navbar">
-        
-        <!-- Left Side: Logo + Name -->
-        <div style="display: flex; align-items: center; gap: 1.5rem;">
-            <a href="#" class="brand-logo">
-                <span class="material-icons">admin_panel_settings</span> AttendEase
-            </a>
-            <div class="hide-mobile" style="display: flex; align-items: center; gap: 1rem;">
-                <span id="admin-name-display-desktop" style="font-weight:600; font-size: 0.95rem;">HOD</span>
-            </div>
-        </div>
-
-        <!-- Center: Navigation Tabs (Desktop only) -->
-        <div class="nav-center-container">
-            <div class="admin-nav">
-                <button class="nav-tab active" data-tab="attendance-view"><span class="material-icons">fact_check</span> Attendance</button>
-                <button class="nav-tab" data-tab="leaderboard-view"><span class="material-icons">leaderboard</span> Leaderboard</button>
-                <button class="nav-tab" data-tab="accounts-view" id="tab-accounts"><span class="material-icons">manage_accounts</span> Accounts</button>
-                <button class="nav-tab" data-tab="queries-view" style="position: relative;">
-                    <span class="material-icons">forum</span> Queries
-                    <span id="admin-query-notif-dot" class="badge hidden" style="position:absolute; top:-5px; right:-5px; background:var(--danger); border-radius:50%; min-width:10px; height:10px; padding:0; border: 1.5px solid #000;"></span>
-                </button>
-                <button class="nav-tab" data-tab="roles-view" id="tab-roles" style="display: none;"><span class="material-icons">admin_panel_settings</span> Manage Roles</button>
-            </div>
-        </div>
-
-        <!-- Right Side: Notification + Logout + Hamburger -->
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <!-- Admin Global Notification Icon -->
-            <div class="notification-nav-item" id="admin-global-notif" style="position: relative; cursor:pointer; display: flex; align-items:center; width: 38px; height: 38px; justify-content: center; background: rgba(255,255,255,0.05); border-radius: 10px;">
-                <span class="material-icons" style="font-size: 1.3rem; color: var(--text);">notifications_active</span>
-                <span id="admin-notif-badge" class="badge hidden" style="position: absolute; top: -2px; right: -2px; background: var(--danger); border-radius: 50%; min-width: 16px; height: 16px; padding:0; display:flex; align-items:center; justify-content:center; font-size: 0.6rem; color: white; border: 1.5px solid #000;">0</span>
-            </div>
-
-            <!-- Desktop Logout -->
-            <button id="btn-logout-admin-desktop" class="btn secondary hide-mobile logout-hover" style="padding: 0.4rem 1rem; font-size: 0.9rem;">Logout</button>
-
-            <!-- Mobile Hamburger -->
-            <button class="hamburger" id="hamburger-menu">
-                <span></span><span></span><span></span>
-            </button>
-        </div>
-    </nav>
-
-    <!-- Mobile Menu dropdown -->
-    <div class="mobile-menu" id="mobile-menu">
-        <div class="mobile-menu-header">
-            <span id="admin-name-display-mobile">Admin</span>
-            <span class="material-icons" id="close-menu" style="cursor:pointer;">close</span>
-        </div>
-        <div class="mobile-nav-links">
-            <button class="mobile-nav-tab active" data-tab="attendance-view">
-                <span class="material-icons">fact_check</span> Attendance
-            </button>
-            <button class="mobile-nav-tab" data-tab="leaderboard-view">
-                <span class="material-icons">leaderboard</span> Leaderboard
-            </button>
-            <button class="mobile-nav-tab" data-tab="accounts-view" id="mob-tab-accounts">
-                <span class="material-icons">manage_accounts</span> Accounts
-            </button>
-            <button class="mobile-nav-tab" data-tab="queries-view">
-                <span class="material-icons">forum</span> Queries
-            </button>
-            <button class="mobile-nav-tab" data-tab="roles-view" id="mob-tab-roles" style="display: none;">
-                <span class="material-icons">admin_panel_settings</span> Manage Roles
-            </button>
-            <hr style="border:0; border-top: 1px solid rgba(255,255,255,0.1); margin: 1rem 0;">
-            <button id="btn-logout-admin-mobile" class="mobile-nav-tab logout-btn">
-                <span class="material-icons">logout</span> Logout
-            </button>
-        </div>
-    </div>
-
     <!-- Admin Login View -->
     <div id="login-view" class="view-container active-view">
         <div class="glass-panel login-card">
@@ -116,8 +42,82 @@
         </div>
     </div>
 
-    <!-- Admin Dashboard -->
+    <!-- Admin Dashboard (Shows after login) -->
     <div id="admin-view" class="view-container dashboard-layout">
+        
+        <!-- Admin Navigation Overlay -->
+        <nav class="navbar">
+            
+            <!-- Left Side: Logo + Name -->
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <a href="#" class="brand-logo">
+                    <span class="material-icons">admin_panel_settings</span> AttendEase
+                </a>
+                <div class="hide-mobile" style="display: flex; align-items: center; gap: 1rem;">
+                    <span id="admin-name-display-desktop" style="font-weight:600; font-size: 0.95rem;">HOD</span>
+                </div>
+            </div>
+
+            <!-- Center: Navigation Tabs (Desktop only) -->
+            <div class="nav-center-container">
+                <div class="admin-nav">
+                    <button class="nav-tab active" data-tab="attendance-view"><span class="material-icons">fact_check</span> Attendance</button>
+                    <button class="nav-tab" data-tab="leaderboard-view"><span class="material-icons">leaderboard</span> Leaderboard</button>
+                    <button class="nav-tab" data-tab="accounts-view" id="tab-accounts"><span class="material-icons">manage_accounts</span> Accounts</button>
+                    <button class="nav-tab" data-tab="queries-view" style="position: relative;">
+                        <span class="material-icons">forum</span> Queries
+                        <span id="admin-query-notif-dot" class="badge hidden" style="position:absolute; top:-5px; right:-5px; background:var(--danger); border-radius:50%; min-width:10px; height:10px; padding:0; border: 1.5px solid #000;"></span>
+                    </button>
+                    <button class="nav-tab" data-tab="roles-view" id="tab-roles" style="display: none;"><span class="material-icons">admin_panel_settings</span> Manage Roles</button>
+                </div>
+            </div>
+
+            <!-- Right Side: Notification + Logout + Hamburger -->
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <!-- Admin Global Notification Icon -->
+                <div class="notification-nav-item" id="admin-global-notif" style="position: relative; cursor:pointer; display: flex; align-items:center; width: 38px; height: 38px; justify-content: center; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                    <span class="material-icons" style="font-size: 1.3rem; color: var(--text);">notifications_active</span>
+                    <span id="admin-notif-badge" class="badge hidden" style="position: absolute; top: -2px; right: -2px; background: var(--danger); border-radius: 50%; min-width: 16px; height: 16px; padding:0; display:flex; align-items:center; justify-content:center; font-size: 0.6rem; color: white; border: 1.5px solid #000;">0</span>
+                </div>
+
+                <!-- Desktop Logout -->
+                <button id="btn-logout-admin-desktop" class="btn secondary hide-mobile logout-hover" style="padding: 0.4rem 1rem; font-size: 0.9rem;">Logout</button>
+
+                <!-- Mobile Hamburger -->
+                <button class="hamburger" id="hamburger-menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Mobile Menu dropdown -->
+        <div class="mobile-menu" id="mobile-menu">
+            <div class="mobile-menu-header">
+                <span id="admin-name-display-mobile">Admin</span>
+                <span class="material-icons" id="close-menu" style="cursor:pointer;">close</span>
+            </div>
+            <div class="mobile-nav-links">
+                <button class="mobile-nav-tab active" data-tab="attendance-view">
+                    <span class="material-icons">fact_check</span> Attendance
+                </button>
+                <button class="mobile-nav-tab" data-tab="leaderboard-view">
+                    <span class="material-icons">leaderboard</span> Leaderboard
+                </button>
+                <button class="mobile-nav-tab" data-tab="accounts-view" id="mob-tab-accounts">
+                    <span class="material-icons">manage_accounts</span> Accounts
+                </button>
+                <button class="mobile-nav-tab" data-tab="queries-view">
+                    <span class="material-icons">forum</span> Queries
+                </button>
+                <button class="mobile-nav-tab" data-tab="roles-view" id="mob-tab-roles" style="display: none;">
+                    <span class="material-icons">admin_panel_settings</span> Manage Roles
+                </button>
+                <hr style="border:0; border-top: 1px solid rgba(255,255,255,0.1); margin: 1rem 0;">
+                <button id="btn-logout-admin-mobile" class="mobile-nav-tab logout-btn">
+                    <span class="material-icons">logout</span> Logout
+                </button>
+            </div>
+        </div>
 
         <main class="dashboard-content">
             <!-- TAB: Attendance -->
@@ -453,7 +453,6 @@
                 </div>
             </div> <!-- END roles-view tab-panel -->
         </main>
-
     </div>
 
     <!-- Admin Query Reply Modal -->

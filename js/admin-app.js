@@ -918,16 +918,18 @@ async function loadLeaderboard() {
 
             Object.keys(attendance).forEach(date => {
                 const dailyAtt = attendance[date];
-                Object.keys(dailyAtt).forEach(subject => {
-                    // If subject filter is set, only skip if it doesn't match
-                    if (subjectFilter !== "overall" && subject !== subjectFilter) return;
+                if (dailyAtt && typeof dailyAtt === 'object') {
+                    Object.keys(dailyAtt).forEach(subject => {
+                        // If subject filter is set, only skip if it doesn't match
+                        if (subjectFilter !== "overall" && subject !== subjectFilter) return;
 
-                    const records = dailyAtt[subject];
-                    if (records[student.uid] !== undefined) {
-                      totalHeld++;
-                      if (records[student.uid] === "present") totalAttended++;
-                    }
-                });
+                        const records = dailyAtt[subject];
+                        if (records && records[student.uid] !== undefined) {
+                          totalHeld++;
+                          if (records[student.uid] === "present") totalAttended++;
+                        }
+                    });
+                }
             });
 
             const percentage = totalHeld > 0 ? ((totalAttended / totalHeld) * 100) : 0;

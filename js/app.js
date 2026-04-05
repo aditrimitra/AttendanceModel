@@ -299,7 +299,8 @@ function initStudentDashboard(user, userData) {
           status: "unread" // for notif tracking
         });
         showToast("Query sent successfully!");
-        queryModal.classList.remove("active");
+        const modal = document.getElementById("query-modal");
+        if (modal) modal.classList.remove("active");
         queryForm.reset();
       } catch (error) {
         showToast("Failed to send query: " + error.message, "error");
@@ -461,7 +462,7 @@ async function loadStudentLeaderboard() {
 
     try {
         const usersSnap = await get(ref(db, "users"));
-        const attSnap = await get(ref(db, `attendance/${currentStudent.branch}/${currentSem}`));
+        const attSnap = await get(ref(db, "attendance"));
         
         if (!usersSnap.exists()) return;
         const users = usersSnap.val();
@@ -499,16 +500,18 @@ async function loadStudentLeaderboard() {
             let totalAttended = 0;
 
             Object.values(attendance).forEach(dateData => {
-                Object.keys(dateData).forEach(subject => {
-                    // Filter matching
-                    if (subjectFilter !== "overall" && subject !== subjectFilter) return;
+                if (dateData && typeof dateData === 'object') {
+                    Object.keys(dateData).forEach(subject => {
+                        // Filter matching
+                        if (subjectFilter !== "overall" && subject !== subjectFilter) return;
 
-                    const records = dateData[subject];
-                    if (records[student.uid] !== undefined) {
-                      totalHeld++;
-                      if (records[student.uid] === "present") totalAttended++;
-                    }
-                });
+                        const records = dateData[subject];
+                        if (records && records[student.uid] !== undefined) {
+                          totalHeld++;
+                          if (records[student.uid] === "present") totalAttended++;
+                        }
+                    });
+                }
             });
 
             const percentage = totalHeld > 0 ? ((totalAttended / totalHeld) * 100) : 0;
@@ -528,6 +531,7 @@ async function loadStudentLeaderboard() {
             tbody.appendChild(tr);
         });
     } catch (e) {
+        console.error("Leaderboard Error:", e);
         tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Leaderboard error</td></tr>';
     }
 }
@@ -707,8 +711,27 @@ async function loadStudentSchedule() {
     }
 }
 
-// Global Password Visibility Toggle
+// Global Dropdown & Password Visibility Handler
 document.addEventListener("click", (e) => {
+    // --- 3-Dots Menu Toggle ---
+    const moreBtn = e.target.closest(".btn-more");
+    const allDropdowns = document.querySelectorAll(".action-dropdown");
+    
+    if (moreBtn) {
+        const dropdown = moreBtn.parentElement.querySelector(".action-dropdown");
+        const isOpen = dropdown.classList.contains("active");
+        
+        allDropdowns.forEach(d => d.classList.remove("active"));
+        if (!isOpen) dropdown.classList.add("active");
+        return;
+    }
+    
+    // Close if click outside dropdown
+    if (!e.target.closest(".action-menu-container")) {
+        allDropdowns.forEach(d => d.classList.remove("active"));
+    }
+
+    // --- Password Toggle ---
     const toggle = e.target.closest(".toggle-password");
     if (toggle) {
         const input = toggle.parentElement.querySelector("input");
