@@ -315,57 +315,121 @@ function initStudentDashboard(user, userData) {
 let studentAttendanceUnsubscribe = null;
 let studentChartInstance = null;
 
-function updateStudentChart(stats) {
-  const ctx = document.getElementById("studentAttendanceChart");
-  if (!ctx) return;
-  
-  if (studentChartInstance) {
-    studentChartInstance.destroy();
-  }
-  
-  const labels = Object.keys(stats);
-  const data = labels.map((subj) => {
-    const s = stats[subj];
-    return s.held > 0 ? ((s.attended / s.held) * 100).toFixed(1) : 0;
-  });
+// Advanced Charts Instances
+let chartInstances = {
+  bar: null,
+  doughnut: null,
+  pie: null,
+  stacked: null,
+  gauge: null
+};
 
-  studentChartInstance = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "Attendance %",
-          data: data,
-          backgroundColor: "rgba(147, 51, 234, 0.4)",
-          borderColor: "#9333ea",
+function renderDetailedCharts(subjectStats) {
+  const labels = Object.keys(subjectStats);
+  const presentData = labels.map(s => subjectStats[s].attended);
+  const absentData = labels.map(s => subjectStats[s].held - subjectStats[s].attended);
+  const percentages = labels.map(s => subjectStats[s].held > 0 ? ((subjectStats[s].attended / subjectStats[s].held) * 100).toFixed(1) : 0);
+
+  // 1. Bar Chart (Percentage per subject)
+  const barCtx = document.getElementById("studentAttendanceChart");
+  if (barCtx) {
+    if (chartInstances.bar) chartInstances.bar.destroy();
+    chartInstances.bar = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Attendance %',
+          data: percentages,
+          backgroundColor: 'rgba(147, 51, 234, 0.4)',
+          borderColor: '#9333ea',
           borderWidth: 2,
-          borderRadius: 8,
-          hoverBackgroundColor: "#9333ea",
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { color: "#94a3b8", font: { family: "'Outfit', sans-serif" } }
-        },
-        y: {
-          beginAtZero: true,
-          max: 100,
-          grid: { color: "rgba(255, 255, 255, 0.05)" },
-          ticks: { color: "#94a3b8", font: { family: "'Outfit', sans-serif" } }
-        }
+          borderRadius: 8
+        }]
       },
-      plugins: {
-        legend: { display: false }
+      options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+    });
+  }
+
+  // 2. Doughnut Chart (Overall P vs A)
+  const totalP = presentData.reduce((a, b) => a + b, 0);
+  const totalA = absentData.reduce((a, b) => a + b, 0);
+  const doughnutCtx = document.getElementById("doughnutChart");
+  if (doughnutCtx) {
+    if (chartInstances.doughnut) chartInstances.doughnut.destroy();
+    chartInstances.doughnut = new Chart(doughnutCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Present', 'Absent'],
+        datasets: [{
+          data: [totalP, totalA],
+          backgroundColor: ['#10b981', '#ef4444'],
+          borderWidth: 0,
+          cutout: '70%'
+        }]
       },
-      animation: { duration: 1500, easing: "easeOutQuart" }
-    }
-  });
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+  }
+
+  // 3. Pie Chart (Held Classes distribution)
+  const pieCtx = document.getElementById("pieChart");
+  if (pieCtx) {
+    if (chartInstances.pie) chartInstances.pie.destroy();
+    chartInstances.pie = new Chart(pieCtx, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: labels.map(s => subjectStats[s].held),
+          backgroundColor: ['#9333ea', '#3b82f6', '#10b981', '#fbbf24', '#f87171', '#6366f1'],
+          borderWidth: 2,
+          borderColor: 'rgba(0,0,0,0.1)'
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+  }
+
+  // 4. Stacked Bar (P vs A Comparison)
+  const stackedCtx = document.getElementById("stackedBarChart");
+  if (stackedCtx) {
+    if (chartInstances.stacked) chartInstances.stacked.destroy();
+    chartInstances.stacked = new Chart(stackedCtx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Present', data: presentData, backgroundColor: '#10b981' },
+          { label: 'Absent', data: absentData, backgroundColor: '#ef4444' }
+        ]
+      },
+      options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }
+    });
+  }
+
+  // 5. Gauge Chart (Overall Percentage)
+  const overallPct = (totalP + totalA) > 0 ? ((totalP / (totalP + totalA)) * 100) : 0;
+  const gaugeCtx = document.getElementById("gaugeChart");
+  if (gaugeCtx) {
+    if (chartInstances.gauge) chartInstances.gauge.destroy();
+    chartInstances.gauge = new Chart(gaugeCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Current', 'Remaining'],
+        datasets: [{
+          data: [overallPct, 100 - overallPct],
+          backgroundColor: [overallPct >= 75 ? '#10b981' : '#ef4444', 'rgba(255,255,255,0.05)'],
+          borderWidth: 0,
+          circumference: 180,
+          rotation: 270,
+          cutout: '80%'
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+    document.getElementById("gaugeText").textContent = overallPct.toFixed(1) + "%";
+  }
 }
 
 function loadStudentAttendance() {
@@ -373,7 +437,7 @@ function loadStudentAttendance() {
     document.getElementById("student-month-filter").value,
   );
   const tbody = document.getElementById("student-records-body");
-  const attRef = ref(db, "attendance");
+  const attRef = ref(db, `attendance/${currentStudent.branch}/${currentSem}`);
 
   if (studentAttendanceUnsubscribe) {
     studentAttendanceUnsubscribe();
@@ -416,7 +480,7 @@ function loadStudentAttendance() {
       tbody.innerHTML =
         '<tr><td colspan="4" class="text-center text-muted">No attendance records for this month.</td></tr>';
       document.getElementById("student-month-percentage").textContent = "0%";
-      updateStudentChart({});
+      renderDetailedCharts({});
       return;
     }
 
@@ -451,7 +515,7 @@ function loadStudentAttendance() {
           ? "var(--danger)"
           : "var(--text)";
           
-    updateStudentChart(subjectStats);
+    renderDetailedCharts(subjectStats);
   });
 }
 
@@ -462,7 +526,7 @@ async function loadStudentLeaderboard() {
 
     try {
         const usersSnap = await get(ref(db, "users"));
-        const attSnap = await get(ref(db, "attendance"));
+        const attSnap = await get(ref(db, `attendance/${currentStudent.branch}/${currentSem}`));
         
         if (!usersSnap.exists()) return;
         const users = usersSnap.val();
@@ -495,28 +559,36 @@ async function loadStudentLeaderboard() {
                 name: users[uid].name
             }));
 
-        const leaderboardData = students.map(student => {
-            let totalHeld = 0;
-            let totalAttended = 0;
+            const leaderboardData = students.map(student => {
+                let totalHeld = 0;
+                let totalAttended = 0;
 
-            Object.values(attendance).forEach(dateData => {
-                if (dateData && typeof dateData === 'object') {
-                    Object.keys(dateData).forEach(subject => {
-                        // Filter matching
-                        if (subjectFilter !== "overall" && subject !== subjectFilter) return;
+                Object.values(attendance).forEach(dateData => {
+                    if (dateData && typeof dateData === 'object') {
+                        Object.keys(dateData).forEach(subject => {
+                            // Filter matching
+                            if (subjectFilter !== "overall" && subject !== subjectFilter) return;
 
-                        const records = dateData[subject];
-                        if (records && records[student.uid] !== undefined) {
-                          totalHeld++;
-                          if (records[student.uid] === "present") totalAttended++;
-                        }
-                    });
-                }
+                            const records = dateData[subject];
+                            // NEW: Verify if this subject record belongs to the specific branch/sem if possible
+                            // For now, we rely on the student's presence in the records.
+                            if (records && records[student.uid] !== undefined) {
+                              totalHeld++;
+                              if (records[student.uid] === "present") totalAttended++;
+                            }
+                        });
+                    }
+                });
+
+                const percentage = totalHeld > 0 ? ((totalAttended / totalHeld) * 100) : 0;
+                return { 
+                    ...student, 
+                    percentage, 
+                    present: totalAttended, 
+                    absent: totalHeld - totalAttended, 
+                    total: totalHeld 
+                };
             });
-
-            const percentage = totalHeld > 0 ? ((totalAttended / totalHeld) * 100) : 0;
-            return { ...student, percentage };
-        });
 
         leaderboardData.sort((a, b) => b.percentage - a.percentage);
 
@@ -526,6 +598,9 @@ async function loadStudentLeaderboard() {
             tr.innerHTML = `
                 <td><b>#${index + 1}</b></td>
                 <td>${student.uid === currentStudent.uid ? `<span style="color:var(--primary); font-weight:700;">${student.name} (You)</span>` : student.name}</td>
+                <td class="text-center">${student.present}</td>
+                <td class="text-center">${student.absent}</td>
+                <td class="text-center">${student.total}</td>
                 <td><span class="stat-value" style="font-size: 1.1rem; color: ${student.percentage >= 75 ? "var(--success)" : "var(--danger)"}">${student.percentage.toFixed(1)}%</span></td>
             `;
             tbody.appendChild(tr);
@@ -676,13 +751,32 @@ async function loadStudentSchedule() {
 
         const ttSnap = await get(ref(db, `timetable/${branch}/${sem}/${dayName}`));
         const ttEntries = ttSnap.exists() ? Object.values(ttSnap.val()) : [];
+        
+        // --- TODAY'S ATTENDANCE STATUS ---
+        const todayDate = new Date().toISOString().split('T')[0];
+        const todayAttSnap = await get(ref(db, `attendance/${branch}/${sem}/${todayDate}`));
+        const todayAtt = todayAttSnap.exists() ? todayAttSnap.val() : {};
 
-        // Update Today's Classes Count for Analytics Tab if the filter day matches actual today
-        const actualToday = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-        if (dayName === actualToday) {
-             const countEl = document.getElementById("today-classes-count");
-             if (countEl) countEl.textContent = ttEntries.length;
-        }
+        let pCount = 0;
+        let aCount = 0;
+        let pendingCount = 0;
+
+        ttEntries.forEach(entry => {
+            const subj = entry.subject;
+            const records = todayAtt[subj];
+            if (records && records[currentStudent.uid] !== undefined) {
+                if (records[currentStudent.uid] === "present") pCount++;
+                else aCount++;
+            } else {
+                pendingCount++;
+            }
+        });
+
+        // Update analytics card
+        document.getElementById("today-classes-count").textContent = ttEntries.length;
+        document.getElementById("today-p").textContent = `${pCount} P`;
+        document.getElementById("today-a").textContent = `${aCount} A`;
+        document.getElementById("today-pending").textContent = `${pendingCount} Pending`;
         
         tbody.innerHTML = "";
         

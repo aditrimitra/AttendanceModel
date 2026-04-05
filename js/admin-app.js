@@ -695,10 +695,10 @@ function initRoleManagement() {
 
     // Event Delegation for Subject Deletion
     listSubjects.addEventListener("click", async (e) => {
-        const btn = e.target.closest(".btn-delete-subject");
-        if (btn) {
-            const path = btn.dataset.path;
-            if (await showConfirm("Remove Subject", "Are you sure you want to remove this subject from the global list?")) {
+        const deleteBtn = e.target.closest(".btn-delete-subject");
+        if (deleteBtn) {
+            const path = deleteBtn.dataset.path;
+            if (await showConfirm("Remove Subject", "Are you sure you want to remove this subject?")) {
                 try {
                     await set(ref(db, path), null);
                     showToast("Subject removed.");
@@ -706,6 +706,7 @@ function initRoleManagement() {
                     showToast("Failed to delete subject", "error");
                 }
             }
+            return;
         }
     });
 
@@ -1167,8 +1168,16 @@ async function saveAttendance() {
     }
   });
 
+  const branch = document.getElementById("admin-branch").value;
+  const sem = document.getElementById("admin-sem").value;
+  
+  if (!date || !subject || !branch || !sem) {
+    showToast("Please fill all details", "error");
+    return;
+  }
+
   try {
-    await set(ref(db, `attendance/${date}/${subject}`), attendanceData);
+    await set(ref(db, `attendance/${branch}/${sem}/${date}/${subject}`), attendanceData);
     showToast("Attendance saved successfully!");
   } catch (error) {
     showToast("Failed to save: " + error.message, "error");
