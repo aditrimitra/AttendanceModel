@@ -330,7 +330,7 @@ function renderDetailedCharts(subjectStats) {
   const absentData = labels.map(s => subjectStats[s].held - subjectStats[s].attended);
   const percentages = labels.map(s => subjectStats[s].held > 0 ? ((subjectStats[s].attended / subjectStats[s].held) * 100).toFixed(1) : 0);
 
-  // 1. Bar Chart (Percentage per subject)
+  // 1. Bar Chart (Top Analytics)
   const barCtx = document.getElementById("studentAttendanceChart");
   if (barCtx) {
     if (chartInstances.bar) chartInstances.bar.destroy();
@@ -347,88 +347,49 @@ function renderDetailedCharts(subjectStats) {
           borderRadius: 8
         }]
       },
-      options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, max: 100 } } 
+      }
     });
   }
 
-  // 2. Doughnut Chart (Overall P vs A)
+  // 2. Gauge Chart (In Monthly Stat Card)
   const totalP = presentData.reduce((a, b) => a + b, 0);
   const totalA = absentData.reduce((a, b) => a + b, 0);
-  const doughnutCtx = document.getElementById("doughnutChart");
-  if (doughnutCtx) {
-    if (chartInstances.doughnut) chartInstances.doughnut.destroy();
-    chartInstances.doughnut = new Chart(doughnutCtx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Present', 'Absent'],
-        datasets: [{
-          data: [totalP, totalA],
-          backgroundColor: ['#10b981', '#ef4444'],
-          borderWidth: 0,
-          cutout: '70%'
-        }]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-    });
-  }
-
-  // 3. Pie Chart (Held Classes distribution)
-  const pieCtx = document.getElementById("pieChart");
-  if (pieCtx) {
-    if (chartInstances.pie) chartInstances.pie.destroy();
-    chartInstances.pie = new Chart(pieCtx, {
-      type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: labels.map(s => subjectStats[s].held),
-          backgroundColor: ['#9333ea', '#3b82f6', '#10b981', '#fbbf24', '#f87171', '#6366f1'],
-          borderWidth: 2,
-          borderColor: 'rgba(0,0,0,0.1)'
-        }]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-    });
-  }
-
-  // 4. Stacked Bar (P vs A Comparison)
-  const stackedCtx = document.getElementById("stackedBarChart");
-  if (stackedCtx) {
-    if (chartInstances.stacked) chartInstances.stacked.destroy();
-    chartInstances.stacked = new Chart(stackedCtx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [
-          { label: 'Present', data: presentData, backgroundColor: '#10b981' },
-          { label: 'Absent', data: absentData, backgroundColor: '#ef4444' }
-        ]
-      },
-      options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }
-    });
-  }
-
-  // 5. Gauge Chart (Overall Percentage)
   const overallPct = (totalP + totalA) > 0 ? ((totalP / (totalP + totalA)) * 100) : 0;
+  
   const gaugeCtx = document.getElementById("gaugeChart");
   if (gaugeCtx) {
     if (chartInstances.gauge) chartInstances.gauge.destroy();
+
+    const gaugeColor = overallPct >= 75 ? '#10b981' : (overallPct >= 40 ? '#f59e0b' : '#ef4444');
+
     chartInstances.gauge = new Chart(gaugeCtx, {
       type: 'doughnut',
       data: {
-        labels: ['Current', 'Remaining'],
         datasets: [{
           data: [overallPct, 100 - overallPct],
-          backgroundColor: [overallPct >= 75 ? '#10b981' : '#ef4444', 'rgba(255,255,255,0.05)'],
+          backgroundColor: [gaugeColor, 'rgba(255,255,255,0.05)'],
           borderWidth: 0,
           circumference: 180,
           rotation: 270,
           cutout: '80%'
         }]
       },
-      options: { responsive: true, plugins: { legend: { display: false } } }
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } } 
+      }
     });
-    document.getElementById("gaugeText").textContent = overallPct.toFixed(1) + "%";
+
+    const gText = document.getElementById("gaugeText");
+    if(gText) {
+      gText.textContent = overallPct.toFixed(1) + "%";
+      gText.style.color = gaugeColor;
+    }
   }
 }
 

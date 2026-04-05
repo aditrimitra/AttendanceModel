@@ -134,14 +134,15 @@
             <!-- TAB: Analytics -->
             <div id="student-analytics-view" class="tab-panel active">
                 <div class="top-cards">
-                    <div class="glass-card stat-card glow-border">
+                    <div class="glass-card stat-card glow-border" style="display: flex; justify-content: space-between; align-items: center; position: relative;">
                         <div class="stat-info">
                             <h3>Monthly Attendance</h3>
                             <p class="stat-value" id="student-month-percentage">0%</p>
                             <p class="stat-subtitle" id="student-month-label">Current Month</p>
                         </div>
-                        <div class="stat-icon">
-                            <span class="material-icons">trending_up</span>
+                        <div style="width: 140px; height: 90px; position: relative; margin-right: -10px;">
+                            <canvas id="gaugeChart"></canvas>
+                            <div id="gaugeText" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 0.9rem; font-weight: 700; color: var(--primary);">0%</div>
                         </div>
                     </div>
                     <div class="glass-card stat-card glow-border" style="cursor: pointer;" onclick="document.querySelector('[data-tab=\'student-schedule-view\']').click();">
@@ -174,39 +175,6 @@
                     <div class="chart-container" style="position: relative; height:350px; width:100%">
                         <canvas id="studentAttendanceChart"></canvas>
                     </div>
-                </div>
-
-                <!-- NEW: Charts Grid -->
-                <div class="grid-2 mt-6" style="gap: 1.5rem;">
-                     <!-- Doughnut Class -->
-                     <div class="main-panel glass-card">
-                        <div class="panel-header"><h4 style="font-size: 0.9rem;">Overall Attendance Hub</h4></div>
-                        <div style="height: 250px; display: flex; justify-content: center;">
-                            <canvas id="doughnutChart"></canvas>
-                        </div>
-                     </div>
-                     <!-- Pie Chart -->
-                     <div class="main-panel glass-card">
-                        <div class="panel-header"><h4 style="font-size: 0.9rem;">Subject Distribution</h4></div>
-                        <div style="height: 250px; display: flex; justify-content: center;">
-                            <canvas id="pieChart"></canvas>
-                        </div>
-                     </div>
-                     <!-- Stacked Bar -->
-                     <div class="main-panel glass-card">
-                        <div class="panel-header"><h4 style="font-size: 0.9rem;">P vs A Comparison</h4></div>
-                        <div style="height: 250px;">
-                            <canvas id="stackedBarChart"></canvas>
-                        </div>
-                     </div>
-                     <!-- Gauge Simulation (using half doughnut) -->
-                     <div class="main-panel glass-card">
-                        <div class="panel-header"><h4 style="font-size: 0.9rem;">Course Strength (Gauge)</h4></div>
-                        <div style="height: 250px; display: flex; justify-content: center; position: relative;">
-                            <canvas id="gaugeChart"></canvas>
-                            <div id="gaugeText" style="position: absolute; bottom: 50%; left: 50%; transform: translateX(-50%); font-size: 1.5rem; font-weight: 700; color: var(--primary);">0%</div>
-                        </div>
-                     </div>
                 </div>
             </div>
 
