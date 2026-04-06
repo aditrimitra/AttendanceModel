@@ -200,7 +200,7 @@ allTabs.forEach(tab => {
         mobileMenu?.classList.remove("active");
 
         if (targetTab === "leaderboard-view") {
-            loadLeaderboard();
+            refreshLeaderboardSubjects();
         }
     });
 });
@@ -497,7 +497,7 @@ function initAdminDashboard(user, userData) {
 
   // Branch Locking for HODs
   if (isHOD && userData.branch) {
-      const lockSels = ["admin-branch", "admin-reg-branch", "tt-branch-select"];
+      const lockSels = ["admin-branch", "admin-reg-branch", "tt-branch-select", "leaderboard-branch-filter"];
       lockSels.forEach(id => {
           const el = document.getElementById(id);
           if (el) {
@@ -519,14 +519,17 @@ function initAdminDashboard(user, userData) {
     document.getElementById("admin-branch"),
     document.getElementById("admin-reg-branch"),
     document.getElementById("tt-branch-select"),
-    document.getElementById("roles-subject-branch-select")
+    document.getElementById("roles-subject-branch-select"),
+    document.getElementById("leaderboard-branch-filter")
   ];
 
   onValue(ref(db, "roles/branches"), (snap) => {
       const html = '<option value="" disabled selected>Select Branch</option>';
       branchSels.forEach(sel => {
           if(!sel) return;
-          sel.innerHTML = html;
+          const isLeaderboard = sel.id === "leaderboard-branch-filter";
+          sel.innerHTML = isLeaderboard ? '<option value="all">All Branches</option>' : html;
+          
           if (snap.exists()) {
               Object.keys(snap.val()).forEach(b => {
                   const opt = document.createElement("option");
@@ -874,6 +877,32 @@ function initTimetableManagement() {
 
 
 
+async function refreshLeaderboardSubjects() {
+    const branch = document.getElementById("leaderboard-branch-filter")?.value;
+    const sem = document.getElementById("leaderboard-sem-filter")?.value;
+    const subjectSel = document.getElementById("leaderboard-subject-filter");
+    
+    if (!subjectSel) return;
+    
+    // Default "Overall" option
+    let html = '<option value="overall">Overall</option>';
+    
+    if (branch && branch !== "all" && sem && sem !== "all") {
+        const subjectsRef = ref(db, `subjects/${branch}/${sem}`);
+        const snap = await get(subjectsRef);
+        
+        if (snap.exists()) {
+            Object.keys(snap.val()).forEach(s => {
+                html += `<option value="${s}">${s}</option>`;
+            });
+        }
+    }
+    
+    subjectSel.innerHTML = html;
+    // Reload leaderboard after subjects change
+    loadLeaderboard();
+}
+
 async function loadLeaderboard() {
     const tbody = document.getElementById("leaderboard-body");
     const branchFilter = document.getElementById("leaderboard-branch-filter").value;
@@ -899,9 +928,9 @@ async function loadLeaderboard() {
                 if (branchFilter !== "all" && s.branch !== branchFilter) return false;
                 if (semFilter !== "all" && s.sem != semFilter) return false;
 
-                // Admin/Master visibility rules
+                // Admin/Master visibility rules: If HOD, can only see their branch
                 if (!isAdminMaster && currentAdminData && currentAdminData.branch) {
-                    return s.branch === currentAdminData.branch;
+                    if (s.branch !== currentAdminData.branch) return false;
                 }
                 return true;
             })
@@ -917,21 +946,29 @@ async function loadLeaderboard() {
             let totalHeld = 0;
             let totalAttended = 0;
 
-            Object.keys(attendance).forEach(date => {
-                const dailyAtt = attendance[date];
-                if (dailyAtt && typeof dailyAtt === 'object') {
-                    Object.keys(dailyAtt).forEach(subject => {
-                        // If subject filter is set, only skip if it doesn't match
-                        if (subjectFilter !== "overall" && subject !== subjectFilter) return;
+            // attendance structure: attendance/{branch}/{sem}/{date}/{subject}/{uid}
+            const branchData = attendance[student.branch];
+            if (branchData) {
+                const semData = branchData[student.sem];
+                if (semData) {
+                    Object.keys(semData).forEach(date => {
+                        const dailyAtt = semData[date];
+                        if (dailyAtt && typeof dailyAtt === 'object') {
+                            Object.keys(dailyAtt).forEach(subject => {
+                                // If subject filter is set (and not "overall"), only skip if it doesn't match
+                                // Note: when overall is selected, we count all subjects
+                                if (subjectFilter !== "overall" && subject !== subjectFilter) return;
 
-                        const records = dailyAtt[subject];
-                        if (records && records[student.uid] !== undefined) {
-                          totalHeld++;
-                          if (records[student.uid] === "present") totalAttended++;
+                                const records = dailyAtt[subject];
+                                if (records && records[student.uid] !== undefined) {
+                                  totalHeld++;
+                                  if (records[student.uid] === "present") totalAttended++;
+                                }
+                            });
                         }
                     });
                 }
-            });
+            }
 
             const percentage = totalHeld > 0 ? ((totalAttended / totalHeld) * 100) : 0;
             return { ...student, percentage };
@@ -956,14 +993,16 @@ async function loadLeaderboard() {
             });
         }
     } catch (e) {
+        console.error(e);
         showToast("Leaderboard error", "error");
     }
 }
 
 // Attach Leaderboard listeners
-["leaderboard-branch-filter", "leaderboard-sem-filter", "leaderboard-subject-filter"].forEach(id => {
-    document.getElementById(id)?.addEventListener("change", loadLeaderboard);
+["leaderboard-branch-filter", "leaderboard-sem-filter"].forEach(id => {
+    document.getElementById(id)?.addEventListener("change", refreshLeaderboardSubjects);
 });
+document.getElementById("leaderboard-subject-filter")?.addEventListener("change", loadLeaderboard);
 
 async function loadRoster() {
   const date = document.getElementById("admin-date").value;
