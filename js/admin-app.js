@@ -653,48 +653,76 @@ function initRoleManagement() {
         }
     });
 
-    onValue(ref(db, "subjects"), snap => {
+    let cachedSubjects = {};
+
+    const refreshRolesSubjectList = () => {
+        if (!listSubjects) return;
+        const branch = document.getElementById("roles-subject-branch-select")?.value;
+        const sem = document.getElementById("roles-subject-sem-select")?.value;
+
         listSubjects.innerHTML = "";
-        if (snap.exists()) {
-            const data = snap.val();
-            Object.keys(data).forEach(branchName => {
-                const branchObj = data[branchName];
-                
-                // Handle Branch -> Sem -> Subject nested structure
-                Object.keys(branchObj).forEach(semOrSubj => {
-                    const item = branchObj[semOrSubj];
-                    
-                    if (item.created) {
-                        // Legacy single-level subject: subjects/branch/subj
-                        const li = document.createElement("li");
-                        li.className = "role-item-display";
-                        li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px; display:flex; justify-content:space-between; align-items:center;";
-                        li.innerHTML = `
-                            <span><b>${semOrSubj}</b> <small style="color:var(--primary)">(${branchName})</small></span>
-                            <button class="btn icon-btn btn-delete-subject" data-path="subjects/${branchName}/${semOrSubj}">
-                                <span class="material-icons" style="color:var(--danger); font-size:1.1rem;">delete</span>
-                            </button>
-                        `;
-                        listSubjects.appendChild(li);
-                    } else {
-                        // Structured: subjects/branch/sem/subj
-                        Object.keys(item).forEach(subjectName => {
-                            const li = document.createElement("li");
-                            li.className = "role-item-display";
-                            li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px; display:flex; justify-content:space-between; align-items:center;";
-                            li.innerHTML = `
-                                <span><b>${subjectName}</b> <small style="color:var(--primary)">(${branchName} - Sem ${semOrSubj})</small></span>
-                                <button class="btn icon-btn btn-delete-subject" data-path="subjects/${branchName}/${semOrSubj}/${subjectName}">
-                                    <span class="material-icons" style="color:var(--danger); font-size:1.1rem;">delete</span>
-                                </button>
-                            `;
-                            listSubjects.appendChild(li);
-                        });
-                    }
-                });
-            });
+
+        if (!branch) {
+            listSubjects.innerHTML = `
+                <li style="text-align:center; padding:3rem 1.5rem; color:var(--text-muted); opacity:0.6; display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+                    <span class="material-icons" style="font-size:2rem;">info_outline</span>
+                    <span>choose branch after then choose sem</span>
+                </li>`;
+            return;
         }
+
+        let found = false;
+        const branchData = cachedSubjects[branch] || {};
+
+        Object.keys(branchData).forEach(semKey => {
+            // If sem is empty (All Sem), skip this check
+            if (sem && semKey !== sem) return;
+
+            const item = branchData[semKey];
+            
+            if (item.created) {
+                // Legacy single-level subject
+                found = true;
+                const li = document.createElement("li");
+                li.className = "role-item-display";
+                li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px; display:flex; justify-content:space-between; align-items:center;";
+                li.innerHTML = `
+                  <span><b>${semKey}</b> <small style="color:var(--primary)">(${branch})</small></span>
+                  <button class="btn icon-btn btn-delete-subject" data-path="subjects/${branch}/${semKey}">
+                    <span class="material-icons" style="color:var(--danger); font-size:1.1rem;">delete</span>
+                  </button>
+                `;
+                listSubjects.appendChild(li);
+            } else {
+                // Structured: subjects/branch/sem/subj
+                Object.keys(item).forEach(subjectName => {
+                    found = true;
+                    const li = document.createElement("li");
+                    li.className = "role-item-display";
+                    li.style.cssText = "padding: 0.5rem; background: rgba(255,255,255,0.05); margin-bottom:0.4rem; border-radius:6px; display:flex; justify-content:space-between; align-items:center;";
+                    li.innerHTML = `
+                        <span><b>${subjectName}</b> <small style="color:var(--primary)">(${branch} - Sem ${semKey})</small></span>
+                        <button class="btn icon-btn btn-delete-subject" data-path="subjects/${branch}/${semKey}/${subjectName}">
+                            <span class="material-icons" style="color:var(--danger); font-size:1.1rem;">delete</span>
+                        </button>
+                    `;
+                    listSubjects.appendChild(li);
+                });
+            }
+        });
+
+        if (!found) {
+            listSubjects.innerHTML = `<li style="text-align:center; padding:2rem; color:var(--text-muted); opacity:0.8;">No subjects found for ${branch}${sem ? ' Sem ' + sem : ''}.</li>`;
+        }
+    };
+
+    onValue(ref(db, "subjects"), snap => {
+        cachedSubjects = snap.exists() ? snap.val() : {};
+        refreshRolesSubjectList();
     });
+
+    document.getElementById("roles-subject-branch-select")?.addEventListener("change", refreshRolesSubjectList);
+    document.getElementById("roles-subject-sem-select")?.addEventListener("change", refreshRolesSubjectList);
 
     // Event Delegation for Subject Deletion
     listSubjects.addEventListener("click", async (e) => {
